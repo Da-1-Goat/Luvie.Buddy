@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Luvie_buddy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* Layout concept: one full-screen fake desktop (SunnyOS, 2003). All UI is built from the tokens below;
+   corruption works by redefining the same tokens per stage class (.s0 to .s6) on #root, so the cute look stays recognizable underneath.
+   This is a deliberately single-look game: it does not follow the viewer's light/dark theme. */
+:root{
+  --sky:#cfe9ff; --mint:#bfeacb; --pink:#ffb3cc; --butter:#fff1b8; --lav:#d9ccff;
+  --ink:#3b3358; --paper:#fffaf0; --chrome:#f1eaff; --chrome2:#e2d7fb; --bevel-lt:#ffffff; --bevel-dk:#b6a9dc;
+  --lv:#ffb3cc; --lvb:#fff4e6; --blood:#7a1e2e; --ash:#8c8896; --void:#14101a; --title1:#ffc2d9; --title2:#cdbdff;
+  --font-d:'Fredoka','Trebuchet MS',system-ui,sans-serif; --font-b:'Nunito','Segoe UI',system-ui,sans-serif; --font-px:'VT323','Courier New',monospace;
+  color-scheme:light;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--font-b);font-size:14px;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+*{box-sizing:border-box}
+button,input,textarea{font-family:inherit;color:inherit}
+#root{position:fixed;inset:0;overflow:hidden;background:var(--void)}
+#root.s3{--chrome:#ece6f3;--chrome2:#ddd5ea;--title1:#f0bfd1;--title2:#c3b8e2;--paper:#f6f0e6}
+#root.s4{--chrome:#dcd7df;--chrome2:#c9c3cf;--title1:#d6b3c0;--title2:#b3acc4;--paper:#eae4dc;--pink:#d9a9b9;--sky:#b9c6d2;--mint:#a9c4b0;--butter:#e3d9ae;--lav:#bdb4d6;--bevel-dk:#9a93ad}
+#root.s5,#root.s6{--chrome:#c4bfc8;--chrome2:#aea8b4;--title1:#a88a96;--title2:#8f89a0;--paper:#ddd6cf;--pink:#c096a6;--sky:#9aa8b4;--mint:#8fa896;--butter:#cfc597;--lav:#a59dbc;--bevel-dk:#7f7890;--ink:#2a2440}
+#screen{position:absolute;inset:0;overflow:hidden}
+#desktop{position:absolute;inset:0 0 40px 0;overflow:hidden;transition:filter 2s}
+#root.s3 #desktop{filter:saturate(.88)}
+#root.s4 #desktop{filter:saturate(.62) contrast(1.04)}
+#root.s5 #desktop,#root.s6 #desktop{filter:saturate(.38) contrast(1.08) brightness(.93)}
+#wall,#wall2{position:absolute;inset:0;transition:opacity 3s}
+#wall svg,#wall2 svg{width:100%;height:100%;display:block}
+#wall2{opacity:0;pointer-events:none}
+.flower-eye{opacity:0;transition:opacity 4s}
+#root.s4 .flower-eye,#root.s5 .flower-eye{opacity:1}
+#root.s3 .wilt{transform-box:fill-box;transform-origin:50% 100%;transform:rotate(14deg)}
+#root.s4 .wilt,#root.s5 .wilt{transform-box:fill-box;transform-origin:50% 100%;transform:rotate(32deg)}
+.wilt{transition:transform 5s}
+.sunface{transition:transform 4s}
+#root.s2 .sunmouth{transform:translateY(1px) scaleX(.9)}
+#root.s3 .sunmouth,#root.s4 .sunmouth{d:path("M-12 8 Q0 6 12 8")}
+/* icons */
+#icons{position:absolute;left:10px;top:10px;bottom:10px;width:92px;display:flex;flex-direction:column;flex-wrap:wrap;gap:8px;align-content:flex-start}
+.dicon{width:84px;padding:4px 2px;border-radius:8px;text-align:center;cursor:default;border:1px solid transparent}
+.dicon svg{width:40px;height:40px;display:block;margin:0 auto 3px;filter:drop-shadow(1px 2px 0 rgba(59,51,88,.25))}
+.dicon span{display:inline-block;font-size:12px;line-height:1.15;font-weight:700;color:#fff;text-shadow:0 1px 2px var(--ink),0 0 3px var(--ink);padding:0 3px;border-radius:4px;word-break:break-word}
+.dicon.sel{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.7)}
+.dicon.sel span{background:var(--ink)}
+.sticky{position:absolute;right:22px;top:20px;width:196px;padding:12px 14px 14px;background:var(--butter);color:var(--ink);font-family:var(--font-px);font-size:19px;line-height:1.05;transform:rotate(2deg);box-shadow:3px 4px 0 rgba(59,51,88,.28);border-radius:3px;z-index:2}
+.sticky::before{content:"";position:absolute;left:50%;top:-8px;width:44px;height:14px;margin-left:-22px;background:rgba(255,179,204,.8);transform:rotate(-3deg)}
+/* windows */
+#wins{position:absolute;inset:0;pointer-events:none}
+.win{position:absolute;pointer-events:auto;display:flex;flex-direction:column;background:var(--chrome);border:2px solid var(--ink);border-radius:12px 12px 8px 8px;box-shadow:4px 5px 0 rgba(59,51,88,.35),inset 1px 1px 0 var(--bevel-lt);overflow:hidden;min-width:220px;min-height:120px;max-width:100%;animation:popin .18s ease-out}
+.win.min{display:none}
+.win.max{left:0!important;top:0!important;width:100%!important;height:100%!important;border-radius:0}
+.tb{display:flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 8px;background:linear-gradient(90deg,var(--title1),var(--title2));border-bottom:2px solid var(--ink);font-family:var(--font-d);font-weight:500;font-size:14px;cursor:grab;flex:none;filter:saturate(.6)}
+.win.act .tb{filter:none}
+.tb svg{width:18px;height:18px;flex:none}
+.tb .tt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb button{width:22px;height:22px;border-radius:6px;border:2px solid var(--ink);background:var(--paper);padding:0;line-height:1;font-size:13px;font-weight:700;cursor:pointer;box-shadow:inset -1px -1px 0 var(--bevel-dk),inset 1px 1px 0 #fff}
+.tb button:hover{background:var(--butter)}
+.tb button.x:hover{background:var(--pink)}
+.wb{flex:1;overflow:auto;position:relative;min-height:0;-webkit-user-select:text;user-select:text}
+.btn{border:2px solid var(--ink);background:var(--paper);border-radius:9px;padding:5px 12px;font-weight:700;font-size:13px;cursor:pointer;box-shadow:inset -2px -2px 0 var(--bevel-dk),inset 2px 2px 0 #fff,0 2px 0 var(--ink);font-family:var(--font-d)}
+.btn:hover{background:var(--butter)}
+.btn:active{transform:translateY(2px);box-shadow:inset 1px 1px 0 var(--bevel-dk)}
+.btn.pk{background:var(--pink)}
+.btn.mn{background:var(--mint)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+input.tx,textarea.tx{border:2px solid var(--ink);border-radius:8px;background:#fff;padding:5px 8px;font-size:14px;outline:none;box-shadow:inset 2px 2px 0 rgba(59,51,88,.15);-webkit-user-select:text;user-select:text}
+input.tx:focus,textarea.tx:focus{border-color:#8b6ad8}
+.sbar{flex:none;height:22px;border-top:2px solid var(--ink);background:var(--chrome2);font-size:12px;padding:2px 8px;display:flex;gap:12px;align-items:center}
+/* taskbar */
+#taskbar{position:absolute;left:0;right:0;bottom:0;height:40px;display:flex;align-items:center;gap:6px;padding:0 6px;background:linear-gradient(var(--title2),var(--chrome2));border-top:2px solid var(--ink);z-index:50}
+#startbtn{height:30px;padding:0 14px 0 8px;display:flex;align-items:center;gap:6px;font-family:var(--font-d);font-weight:600;font-size:16px;font-style:italic;background:var(--mint);border:2px solid var(--ink);border-radius:15px;cursor:pointer;box-shadow:inset -2px -2px 0 rgba(0,0,0,.15),inset 2px 2px 0 rgba(255,255,255,.7)}
+#startbtn:hover{filter:brightness(1.06)}
+#tasks{flex:1;display:flex;gap:4px;overflow:hidden;min-width:0}
+.tk{height:28px;min-width:40px;max-width:150px;flex:0 1 150px;display:flex;align-items:center;gap:5px;padding:0 8px;border:2px solid var(--ink);border-radius:8px;background:var(--chrome);font-size:12px;font-weight:700;cursor:pointer;overflow:hidden;white-space:nowrap}
+.tk svg{width:16px;height:16px;flex:none}
+.tk.on{background:var(--butter);box-shadow:inset 2px 2px 0 var(--bevel-dk)}
+#tray{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;border:2px solid var(--ink);border-radius:15px;background:var(--chrome);flex:none}
+#tray svg{width:18px;height:18px;cursor:pointer}
+#clock{font-family:var(--font-px);font-size:20px;line-height:1;min-width:64px;text-align:right;cursor:default}
+#bellN{position:absolute;margin:-12px 0 0 10px;background:var(--pink);border:1px solid var(--ink);border-radius:8px;font-size:10px;font-weight:800;padding:0 4px;display:none}
+#startmenu{position:absolute;left:6px;bottom:44px;width:250px;background:var(--chrome);border:2px solid var(--ink);border-radius:14px;box-shadow:4px 5px 0 rgba(59,51,88,.35);z-index:60;overflow:hidden}
+#startmenu[hidden]{display:none}
+#startmenu .sh{padding:10px 14px;background:linear-gradient(90deg,var(--title1),var(--title2));border-bottom:2px solid var(--ink);font-family:var(--font-d);font-weight:600;font-size:16px}
+.sm{display:flex;align-items:center;gap:10px;padding:7px 14px;cursor:pointer;font-weight:700}
+.sm svg{width:24px;height:24px}
+.sm:hover{background:var(--butter)}
+.sm.sep{border-top:2px dashed var(--bevel-dk)}
+/* toasts */
+#toasts{position:absolute;right:10px;bottom:50px;width:290px;display:flex;flex-direction:column;gap:8px;z-index:80;pointer-events:none}
+.toast{pointer-events:auto;display:flex;gap:10px;padding:10px 12px;background:var(--paper);border:2px solid var(--ink);border-radius:12px;box-shadow:3px 4px 0 rgba(59,51,88,.3);animation:slidein .35s cubic-bezier(.2,1.3,.4,1);cursor:pointer}
+.toast svg{width:30px;height:30px;flex:none}
+.toast b{font-family:var(--font-d);font-size:14px;display:block}
+.toast p{margin:2px 0 0;font-size:12.5px;line-height:1.3}
+.toast.out{animation:slideout .3s forwards}
+/* luvie */
+#luvie{position:absolute;width:96px;height:116px;z-index:70;left:300px;top:300px;transition:left var(--wd,3s) linear,top var(--wd,3s) linear;cursor:pointer;touch-action:none}
+#luvie .lvi{width:100%;height:100%;transform-origin:50% 100%;transition:transform .3s,filter 2s}
+#luvie.walk .lvi{animation:hop .42s infinite}
+#luvie.idle .lvi{animation:breathe 3s ease-in-out infinite}
+#luvie.face-l .lvi{transform:scaleX(-1)}
+#luvie svg{width:100%;height:100%;overflow:visible}
+#luvie.back .face{opacity:0}
+#luvie.hide{opacity:0;pointer-events:none}
+#luvie.big .lvi{transform:scale(1.35)}
+#luvie.s-grey .lvi{filter:saturate(.35) brightness(.92)}
+#luvie.s-dead .lvi{filter:saturate(.1) brightness(.8) contrast(1.2)}
+#luvie.drag{transition:none}
+.lv-body{fill:var(--lv);stroke:var(--ink);stroke-width:3}
+.lv-belly{fill:var(--lvb)}
+.lv-ear{fill:var(--lv);stroke:var(--ink);stroke-width:3}
+.lv-ear2{fill:#ff8fb5}
+.lv-cheek{fill:#ff7fa5;opacity:.55}
+.lid{fill:var(--lv);transform-box:fill-box;transform-origin:50% 0;transform:scaleY(0)}
+#luvie.blink .lid,.e-sleep .lid{transform:scaleY(1)}
+.pupil{transform:translate(var(--px,0px),var(--py,0px)) scale(var(--ps,1));transform-box:fill-box;transform-origin:50% 50%;transition:transform .12s}
+.mouth path,.mouth ellipse{display:none}
+.e-happy .m-smile,.e-eat .m-open,.e-sad .m-sad,.e-wow .m-open,.e-sleep .m-flat,.e-flat .m-flat,.e-wide .m-wide{display:inline}
+.e-happy .m-smile{display:inline}
+.s4 .hl,.s5 .hl,.s6 .hl{opacity:0}
+.s4 .lv-cheek,.s5 .lv-cheek{opacity:.2}
+.arm{transform-box:fill-box;transform-origin:50% 0;transition:transform .3s}
+.wave .armr{animation:wave .5s 4}
+.bubble{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:6px;min-width:90px;max-width:230px;width:max-content;padding:8px 11px;background:#fff;border:2px solid var(--ink);border-radius:14px;font-size:13px;font-weight:700;line-height:1.3;text-align:center;box-shadow:2px 3px 0 rgba(59,51,88,.25);pointer-events:none;opacity:0;transition:opacity .25s;z-index:5;color:var(--ink)}
+.bubble.on{opacity:1}
+.bubble::after{content:"";position:absolute;left:50%;top:100%;margin-left:-7px;border:7px solid transparent;border-top-color:var(--ink)}
+.bubble.dark{background:#1a1420;color:#f5c3d3;border-color:#f5c3d3}
+.heart{position:absolute;pointer-events:none;font-size:20px;color:#ff6f9f;animation:floaty 1.4s ease-out forwards;z-index:75;text-shadow:0 1px 0 #fff}
+.crumb{position:absolute;pointer-events:none;width:8px;height:8px;border-radius:50%;z-index:75;animation:floaty 1s ease-out forwards}
+#ghost{position:absolute;width:22px;height:26px;z-index:90;pointer-events:none;opacity:0;transition:left 1.6s ease-in-out,top 1.6s ease-in-out,opacity .6s;left:50%;top:50%}
+#ghost svg{width:100%;height:100%;filter:drop-shadow(0 0 3px #ffb3cc)}
+#root.paw,#root.paw *{cursor:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><circle cx='14' cy='18' r='7' fill='%23ffb3cc' stroke='%233b3358' stroke-width='2'/><circle cx='6' cy='9' r='3' fill='%23ffb3cc' stroke='%233b3358' stroke-width='2'/><circle cx='22' cy='9' r='3' fill='%23ffb3cc' stroke='%233b3358' stroke-width='2'/><circle cx='14' cy='5' r='3' fill='%23ffb3cc' stroke='%233b3358' stroke-width='2'/></svg>") 14 14,auto!important}
+/* fx */
+#fx{position:absolute;inset:0;pointer-events:none;z-index:200}
+#fx .scan{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,rgba(20,10,30,.07) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+#fx .vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(20,10,30,.28) 100%);transition:background 3s}
+#root.s4 #fx .vig,#root.s5 #fx .vig{background:radial-gradient(ellipse at center,transparent 45%,rgba(20,6,16,.5) 100%)}
+#fx .tear{position:absolute;left:0;right:0;height:40px;top:30%;background:rgba(255,120,170,.08);backdrop-filter:hue-rotate(40deg);opacity:0;transform:translateX(0)}
+#fx .tear.go{animation:tear .35s steps(4)}
+#fx .red{position:absolute;inset:0;background:var(--blood);opacity:0;mix-blend-mode:multiply;transition:opacity 1s}
+#screen.shift{animation:shift .22s steps(2)}
+#screen.rgb #desktop{filter:drop-shadow(3px 0 0 rgba(255,0,80,.5)) drop-shadow(-3px 0 0 rgba(0,200,255,.5))}
+#root.s3 #fx .scan{background:repeating-linear-gradient(to bottom,rgba(20,10,30,.1) 0 1px,transparent 1px 3px);animation:flick 6s infinite}
+.gl{display:inline-block;animation:glt .12s steps(2) 3}
+/* login / overlays */
+#login{position:absolute;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 20%,#fff6e0,#ffd1e2 40%,#bcd6ff 100%);padding:16px}
+#login .card{background:var(--paper);border:3px solid var(--ink);border-radius:20px;padding:26px 30px;max-width:380px;width:100%;text-align:center;box-shadow:6px 7px 0 rgba(59,51,88,.35)}
+#login h1{font-family:var(--font-d);font-weight:600;margin:6px 0 2px;font-size:30px}
+#login p{margin:4px 0 14px}
+#login .tx{width:100%;text-align:center;font-size:16px;margin-bottom:12px}
+#end{position:absolute;inset:0;z-index:400;background:rgba(10,6,16,0);pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:var(--font-px);color:#ffd9e6;transition:background 2s}
+#end.on{pointer-events:auto}
+#end .line{font-size:clamp(22px,4vw,34px);line-height:1.15;max-width:760px;min-height:1.2em;text-shadow:0 0 12px rgba(255,120,170,.6)}
+#end .line.small{font-size:clamp(18px,2.6vw,24px);opacity:.85}
+#end .cred{max-width:560px;font-size:22px;line-height:1.3;overflow:hidden}
+#end .cred h2{font-family:var(--font-d);font-weight:600;font-size:34px;margin:0 0 6px;color:#fff}
+#end .cred .k{color:#ffb3cc;font-size:20px;letter-spacing:.12em;text-transform:uppercase}
+#end .row{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center}
+.endsrow{display:flex;gap:8px;justify-content:center;margin-top:10px;font-size:18px;flex-wrap:wrap}
+.endsrow i{font-style:normal;border:1px solid #ffb3cc;border-radius:10px;padding:2px 10px;opacity:.45}
+.endsrow i.got{opacity:1;background:rgba(255,179,204,.2)}
+/* luvie app */
+.lapp{display:flex;flex-direction:column;height:100%;background:linear-gradient(var(--sky),var(--mint))}
+.ltabs{display:flex;gap:4px;padding:6px 8px 0;background:var(--chrome2);border-bottom:2px solid var(--ink)}
+.ltab{padding:5px 12px;border:2px solid var(--ink);border-bottom:0;border-radius:9px 9px 0 0;background:var(--chrome);font-family:var(--font-d);font-weight:500;cursor:pointer;font-size:13px}
+.ltab.on{background:var(--paper);font-weight:600}
+.lpane{flex:1;overflow:auto;padding:10px;min-height:0}
+.bars{display:grid;grid-template-columns:70px 1fr;gap:5px 8px;align-items:center;font-weight:800;font-size:12px;background:var(--paper);border:2px solid var(--ink);border-radius:10px;padding:8px 10px}
+.bar{height:14px;border:2px solid var(--ink);border-radius:7px;background:#fff;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--c) 0 8px,transparent 8px 10px);transition:width .5s}
+.shelf{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.itm{width:58px;padding:5px 2px;text-align:center;border:2px solid var(--ink);border-radius:10px;background:var(--paper);cursor:pointer;font-size:11px;font-weight:800;box-shadow:0 2px 0 var(--ink)}
+.itm:hover{background:var(--butter);transform:translateY(-2px)}
+.itm svg{width:30px;height:30px;display:block;margin:0 auto 2px}
+.shl{font-family:var(--font-d);font-weight:600;margin:10px 0 0;font-size:13px}
+.chatlog{height:210px;overflow:auto;background:var(--paper);border:2px solid var(--ink);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;-webkit-user-select:text;user-select:text}
+.msg{max-width:84%;padding:6px 10px;border-radius:12px;font-size:13px;line-height:1.3;border:2px solid var(--ink)}
+.msg.l{background:var(--pink);align-self:flex-start;border-bottom-left-radius:3px}
+.msg.u{background:var(--sky);align-self:flex-end;border-bottom-right-radius:3px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}
+.chip{font-size:12px;font-weight:700;padding:3px 9px;border:2px solid var(--ink);border-radius:12px;background:var(--butter);cursor:pointer}
+.chip:hover{background:var(--mint)}
+.diary{background:var(--paper);border:2px solid var(--ink);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-family:var(--font-px);font-size:19px;line-height:1.1;-webkit-user-select:text;user-select:text}
+.diary small{display:block;font-family:var(--font-b);font-size:11px;opacity:.6;margin-bottom:3px}
+/* explorer / notepad / misc */
+.xp{display:flex;flex-direction:column;height:100%}
+.xtool{display:flex;gap:6px;padding:6px;background:var(--chrome2);border-bottom:2px solid var(--ink);align-items:center}
+.xtool .tx{flex:1;min-width:0;padding:3px 8px;font-size:13px}
+.xgrid{flex:1;overflow:auto;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;padding:10px;background:#fff}
+.xi{width:88px;text-align:center;padding:5px 2px;border:1px solid transparent;border-radius:8px;font-size:12px;font-weight:700;word-break:break-word}
+.xi svg{width:36px;height:36px;display:block;margin:0 auto 3px}
+.xi.sel{background:var(--lav);border-color:var(--ink)}
+.np{width:100%;height:100%;border:0;resize:none;background:#fffef6;padding:10px 12px;font-family:var(--font-px);font-size:20px;line-height:1.05;outline:none;color:var(--ink);-webkit-user-select:text;user-select:text}
+.bar-url{display:flex;gap:5px;padding:6px;background:var(--chrome2);border-bottom:2px solid var(--ink);align-items:center}
+.bar-url .tx{flex:1;min-width:0;padding:3px 8px;font-size:13px}
+.bkm{display:flex;gap:10px;padding:3px 10px;background:var(--chrome);border-bottom:2px solid var(--ink);font-size:12px;font-weight:700;flex-wrap:wrap}
+.bkm a{cursor:pointer;text-decoration:underline;text-decoration-style:dotted}
+.page{padding:14px 18px;background:#fff;min-height:100%;font-size:14px;line-height:1.45;-webkit-user-select:text;user-select:text}
+.page h1{font-family:var(--font-d);font-size:26px;margin:4px 0 8px}
+.page h2{font-family:var(--font-d);font-size:19px;margin:14px 0 4px}
+.page a,.lnk{color:#4a37c4;text-decoration:underline;cursor:pointer}
+.page .hero{background:linear-gradient(var(--sky),var(--lav));border:2px solid var(--ink);border-radius:14px;padding:14px;text-align:center;margin-bottom:10px}
+.page .post{border:2px solid var(--ink);border-radius:10px;padding:8px 10px;margin:8px 0;background:var(--paper)}
+.page .post small{opacity:.65}
+.page .tiny{font-size:10px;color:#aaa}
+.fizz{font-family:var(--font-d);font-weight:600;font-size:44px;text-align:center;margin:18px 0 8px;letter-spacing:2px}
+.fizz span:nth-child(1){color:#ff7fa5}.fizz span:nth-child(2){color:#f5b942}.fizz span:nth-child(3){color:#5fc98f}.fizz span:nth-child(4){color:#5fa8ff}.fizz span:nth-child(5){color:#a37bff}.fizz span:nth-child(6){color:#ff7fa5}
+.mail{display:flex;height:100%}
+.mlist{width:42%;max-width:240px;border-right:2px solid var(--ink);overflow:auto;background:#fff;flex:none}
+.mi{padding:7px 9px;border-bottom:1px solid var(--bevel-dk);cursor:pointer;font-size:12px}
+.mi b{display:block;font-size:13px}
+.mi.unread b::before{content:"● ";color:var(--pink)}
+.mi:hover,.mi.on{background:var(--butter)}
+.mbody{flex:1;overflow:auto;padding:12px 14px;background:var(--paper);white-space:pre-wrap;line-height:1.4;-webkit-user-select:text;user-select:text;min-width:0}
+.term{background:#120d1a;color:#ffc2d9;font-family:var(--font-px);font-size:19px;line-height:1.05;padding:8px 10px;height:100%;overflow:auto;white-space:pre-wrap;-webkit-user-select:text;user-select:text}
+.term input{background:transparent;border:0;outline:0;color:inherit;font:inherit;width:70%;-webkit-user-select:text;user-select:text}
+.tm{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff}
+.tm th,.tm td{padding:4px 8px;border-bottom:1px solid var(--bevel-dk);text-align:left}
+.tm th{background:var(--chrome2);position:sticky;top:0}
+.tm tr.sel td{background:var(--lav)}
+.dlg{padding:14px;display:flex;gap:12px;align-items:flex-start}
+.dlg svg{width:38px;height:38px;flex:none}
+.dlg p{margin:0 0 10px;line-height:1.35}
+.dlgb{display:flex;gap:8px;justify-content:flex-end;padding:0 14px 12px;flex-wrap:wrap}
+.prog{height:20px;border:2px solid var(--ink);border-radius:10px;background:#fff;overflow:hidden;margin:8px 0}
+.prog i{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,var(--pink) 0 10px,var(--butter) 10px 20px)}
+.eula{height:150px;overflow:auto;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:8px;font-size:12px;line-height:1.4;-webkit-user-select:text;user-select:text}
+.shake{animation:shake .35s}
+@keyframes popin{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes slidein{from{transform:translateX(120%)}to{transform:none}}
+@keyframes slideout{to{transform:translateX(120%);opacity:0}}
+@keyframes hop{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,.975)}}
+@keyframes wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-50deg)}}
+@keyframes floaty{from{transform:translateY(0);opacity:1}to{transform:translateY(-46px);opacity:0}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes tear{0%{opacity:1;transform:translateX(-14px)}50%{transform:translateX(18px);opacity:1}100%{opacity:0;transform:translateX(0)}}
+@keyframes shift{0%{transform:translate(0)}50%{transform:translate(-5px,1px)}100%{transform:translate(4px,-1px)}}
+@keyframes flick{0%,92%,100%{opacity:1}94%{opacity:.5}96%{opacity:.9}98%{opacity:.6}}
+@keyframes glt{0%{transform:translate(-1px,0);color:#ff4f8a}50%{transform:translate(1px,1px);color:#4fd3ff}100%{transform:none}}
+@media (max-width:700px){
+  .win{left:0!important;top:0!important;width:100%!important;height:calc(100% - 0px)!important;border-radius:0}
+  #desktop{bottom:40px}
+  .sticky{display:none}
+  #icons{width:80px}
+  #tray #clock{min-width:54px}
+  .mlist{width:38%}
+  .tk span{display:none}
+  .tk{min-width:34px;flex:0 0 38px}
+}
+@media (prefers-reduced-motion:reduce){#luvie.walk .lvi,#luvie.idle .lvi{animation:none}.gl,#screen.shift{animation:none}}
+</style>
+</head><body>
+<div id="root" class="s0">
+ <div id="screen">
+  <div id="desktop">
+   <div id="wall"></div><div id="wall2"></div>
+   <div id="icons"></div>
+   <div class="sticky" id="sticky"></div>
+   <div id="wins"></div>
+  </div>
+  <div id="taskbar">
+   <div id="startbtn"></div>
+   <div id="tasks"></div>
+   <div id="tray"><span id="trayLuvie" style="display:none"></span><span id="vol"></span><span id="bell"></span><span id="bellN">0</span><span id="clock" title="">3:04 PM</span></div>
+  </div>
+  <div id="startmenu" hidden></div>
+  <div id="toasts"></div>
+  <div id="luvie" class="idle"></div>
+  <div id="ghost"></div>
+ </div>
+ <div id="fx"><div class="scan"></div><div class="vig"></div><div class="red"></div><div class="tear"></div></div>
+ <div id="end"></div>
+ <div id="login"></div>
+</div>
+<script>
+'use strict';
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+const rnd=(a,b)=>a+Math.random()*(b-a),ri=(a,b)=>Math.floor(rnd(a,b+1)),pick=a=>a[Math.floor(Math.random()*a.length)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const root=$('#root'),screen=$('#screen'),desk=$('#desktop');
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ---------- state ---------- */
+let S;
+function newState(){S={name:'friend',stage:0,t:0,installed:false,hatched:false,hunger:88,fun:88,love:62,fed:0,played:0,petted:0,chats:0,neglect:0,milk:0,
+ clues:{},flags:{},fired:{},userMsgs:[],pwTries:0,leave:0,killed:0,aboutClicks:0,pwAttempts:4811,mail:[],notifs:[],clockMode:'n',clockMin:15*60+4,clockText:null,
+ files:{},over:false,lullaby:{},found:0,dateStr:'Friday, June 13, 2003',lastAct:0,hideDone:false,finale:false,wallLocked:false}}
+newState();
+const clue=k=>{if(!S.clues[k]){S.clues[k]=1;S.t+=6}};
+const nClues=()=>Object.keys(S.clues).length;
+const care=()=>Math.max(0,Math.min(100,S.fed*5+S.played*5+S.petted*3+S.chats*2-S.neglect*6));
+
+/* ---------- audio ---------- */
+const NOTE=n=>{const m={C:0,D:2,E:4,F:5,G:7,A:9,B:11},x=n.match(/^([A-G])(#|b)?(\d)$/);return 440*Math.pow(2,(m[x[1]]+(x[2]=='#'?1:x[2]=='b'?-1:0)+(+x[3]+1)*12-69)/12)};
+const A={ctx:null,m:null,muted:false,dg:null,
+ init(){if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume();return}
+  try{const C=window.AudioContext||window.webkitAudioContext;this.ctx=new C();this.m=this.ctx.createGain();this.m.gain.value=.55;this.m.connect(this.ctx.destination);
+   this.dg=this.ctx.createGain();this.dg.gain.value=0;this.dg.connect(this.m);
+   [55,58.2,110.5].forEach((f,i)=>{const o=this.ctx.createOscillator();o.type=i==2?'triangle':'sine';o.frequency.value=f;const g=this.ctx.createGain();g.gain.value=i==2?.4:1;o.connect(g);g.connect(this.dg);o.start()})}catch(e){this.ctx=null}},
+ tone(f,d=.15,type='sine',v=.12,delay=0,end){if(!this.ctx||this.muted)return;try{const c=this.ctx,t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(end)o.frequency.exponentialRampToValueAtTime(end,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(this.m);o.start(t);o.stop(t+d+.05)}catch(e){}},
+ noise(d=.2,v=.1,f=1200){if(!this.ctx||this.muted)return;try{const c=this.ctx,n=Math.floor(c.sampleRate*d),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type='bandpass';fl.frequency.value=f;const g=c.createGain();g.gain.value=v;s.connect(fl);fl.connect(g);g.connect(this.m);s.start()}catch(e){}},
+ seq(arr,step=.2,type='triangle',v=.1){arr.forEach((n,i)=>n&&this.tone(NOTE(n),step*2.2,type,v,i*step))},
+ blip(){this.tone(rnd(760,980),.06,'square',.03)},
+ pop(){this.tone(520,.1,'sine',.1,0,980)},
+ click(){this.tone(900,.03,'square',.03)},
+ chime(){this.seq(['E5','G5','C6','G5','C6','E6'],.11,'sine',.1)},
+ err(){this.tone(190,.3,'sawtooth',.07,0,80)},
+ glitch(){this.noise(.2,.13,rnd(400,3200));this.tone(rnd(50,160),.25,'square',.04)},
+ yum(){this.seq(['C5','E5','G5'],.07,'sine',.1)},
+ box(off){const mel=['C5','E5','G5','E5','A5','G5','E5',0,'D5','F5','A5','F5','G5','E5','C5',0];const st=.34;mel.forEach((n,i)=>{if(!n)return;if(off&&Math.random()<.22)return;let f=NOTE(n);if(off)f*=Math.pow(2,rnd(-.7,.7)/12);this.tone(f,1.1,'triangle',.08,i*st);this.tone(f*2,.6,'sine',.03,i*st)});return mel.length*st},
+ drone(l){if(this.dg&&this.ctx)this.dg.gain.linearRampToValueAtTime(this.muted?0:l,this.ctx.currentTime+3)},
+ mute(m){this.muted=m;if(m)this.drone(0)}
+};
+
+/* ---------- icons ---------- */
+const K='stroke="#3b3358" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
+const sv=b=>`<svg viewBox="0 0 32 32" aria-hidden="true">${b}</svg>`;
+const IC={
+ computer:sv(`<rect x="4" y="5" width="24" height="17" rx="3" fill="#cfe9ff" ${K}/><rect x="7" y="8" width="18" height="11" rx="1.5" fill="#fff"/><circle cx="13" cy="12" r="1.1" fill="#3b3358"/><circle cx="19" cy="12" r="1.1" fill="#3b3358"/><path d="M13 15q3 2.6 6 0" fill="none" ${K}/><rect x="11" y="24" width="10" height="4" rx="1" fill="#d9ccff" ${K}/>`),
+ folder:sv(`<path d="M3 9a2 2 0 0 1 2-2h7l3 3h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#fff1b8" ${K}/><path d="M3 14h26" ${K}/>`),
+ lockf:sv(`<path d="M3 9a2 2 0 0 1 2-2h7l3 3h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#ffc2d9" ${K}/><rect x="12" y="15" width="9" height="8" rx="2" fill="#fff" ${K}/><path d="M14 15v-2a2.5 2.5 0 0 1 5 0v2" fill="none" ${K}/>`),
+ globe:sv(`<circle cx="16" cy="16" r="12" fill="#cfe9ff" ${K}/><path d="M4 16h24M16 4c-6 6-6 18 0 24M16 4c6 6 6 18 0 24" fill="none" ${K}/><path d="M8 10q4 3 9 0t8 2" fill="#bfeacb" stroke="none"/>`),
+ trash:sv(`<path d="M8 9l2 18h12l2-18z" fill="#d9ccff" ${K}/><rect x="6" y="6" width="20" height="4" rx="2" fill="#f1eaff" ${K}/><path d="M13 5h6M13 13v10M19 13v10" fill="none" ${K}/>`),
+ doc:sv(`<path d="M7 3h13l6 6v20H7z" fill="#fff" ${K}/><path d="M20 3v6h6M11 15h11M11 19h11M11 23h7" fill="none" ${K}/>`),
+ img:sv(`<rect x="4" y="5" width="24" height="22" rx="3" fill="#fff" ${K}/><circle cx="11" cy="12" r="2.5" fill="#fff1b8" ${K}/><path d="M5 25l8-8 5 5 4-4 6 6" fill="#bfeacb" ${K}/>`),
+ mail:sv(`<rect x="3" y="7" width="26" height="18" rx="3" fill="#fff" ${K}/><path d="M4 9l12 9 12-9" fill="none" ${K}/>`),
+ gear:sv(`<circle cx="16" cy="16" r="9" fill="#d9ccff" ${K}/><circle cx="16" cy="16" r="3.5" fill="#fff" ${K}/><path d="M16 3v5M16 24v5M3 16h5M24 16h5M7 7l3 3M22 22l3 3M25 7l-3 3M10 22l-3 3" fill="none" ${K}/>`),
+ term:sv(`<rect x="3" y="5" width="26" height="22" rx="3" fill="#2b2238" ${K}/><path d="M8 12l5 4-5 4M16 21h8" fill="none" stroke="#ffc2d9" stroke-width="2.4" stroke-linecap="round"/>`),
+ task:sv(`<rect x="4" y="5" width="24" height="22" rx="3" fill="#fff" ${K}/><path d="M8 22v-5M13 22v-10M18 22v-7M23 22v-12" stroke="#ff7fa5" stroke-width="3" stroke-linecap="round"/>`),
+ luvie:sv(`<ellipse cx="9" cy="8" rx="4" ry="4.5" fill="#ffb3cc" ${K}/><ellipse cx="23" cy="8" rx="4" ry="4.5" fill="#ffb3cc" ${K}/><path d="M16 4c8 0 12 6 12 14 0 7-4 11-12 11S4 25 4 18C4 10 8 4 16 4z" fill="#ffb3cc" ${K}/><circle cx="11.5" cy="16" r="2.6" fill="#fff"/><circle cx="20.5" cy="16" r="2.6" fill="#fff"/><circle cx="12" cy="16.3" r="1.4" fill="#3b3358"/><circle cx="21" cy="16.3" r="1.4" fill="#3b3358"/><path d="M13.5 21q2.5 2.5 5 0" fill="none" ${K}/>`),
+ setup:sv(`<rect x="4" y="9" width="24" height="18" rx="3" fill="#ffb3cc" ${K}/><path d="M16 3v12m-5-4l5 5 5-5" fill="none" ${K}/><path d="M4 18h24" ${K}/>`),
+ heart:sv(`<path d="M16 28C5 20 3 13 7 8.5c3-3 7-1.5 9 1.5 2-3 6-4.500 9-1.500C29 13 27 20 16 28z" fill="#ff7fa5" ${K}/>`),
+ apple:sv(`<path d="M16 9c-6-4-12 1-10 9 1.500 6 6 9 10 7 4 2 8.500-1 10-7 2-8-4-13-10-9z" fill="#ff8f8f" ${K}/><path d="M16 9c0-3 1-5 4-6" fill="none" ${K}/><path d="M18 6q4-2 6 1-3 2-6-1z" fill="#8fdc9f" ${K}/>`),
+ cookie:sv(`<circle cx="16" cy="16" r="12" fill="#f0c68a" ${K}/><circle cx="11" cy="12" r="1.8" fill="#5a3b2e"/><circle cx="20" cy="11" r="1.8" fill="#5a3b2e"/><circle cx="21" cy="20" r="1.8" fill="#5a3b2e"/><circle cx="12" cy="21" r="1.8" fill="#5a3b2e"/><circle cx="16" cy="16" r="1.5" fill="#5a3b2e"/>`),
+ milk:sv(`<path d="M9 10l3-6h8l3 6v18H9z" fill="#ffc2d9" ${K}/><path d="M9 11h14" ${K}/><path d="M16 16c-3-3-6 0-4 3l4 4 4-4c2-3-1-6-4-3z" fill="#ff7fa5" stroke="none"/>`),
+ onigiri:sv(`<path d="M16 4c-3 0-12 17-12 20a4 4 0 0 0 4 4h16a4 4 0 0 0 4-4C28 21 19 4 16 4z" fill="#fff" ${K}/><path d="M10 23h12v5H10z" fill="#2b2238" ${K}/>`),
+ star:sv(`<path d="M16 3l3.500 8 8.500 1-6.500 6 2 8.500L16 22l-7.500 4.500 2-8.500L4 12l8.500-1z" fill="#ffe27a" ${K}/>`),
+ ball:sv(`<circle cx="16" cy="16" r="12" fill="#ff9ec0" ${K}/><path d="M5 12q11 5 22 0M5 21q11-5 22 0" fill="none" stroke="#fff" stroke-width="2.500"/>`),
+ yarn:sv(`<circle cx="16" cy="16" r="11" fill="#b9a5ff" ${K}/><path d="M7 12q9 4 18-2M6 18q10 5 20-2M10 24q6-2 12-9" fill="none" ${K}/><path d="M25 24q5 3 2 6" fill="none" ${K}/>`),
+ music:sv(`<rect x="4" y="12" width="24" height="15" rx="3" fill="#fff1b8" ${K}/><path d="M4 16h24" ${K}/><path d="M13 9V5l8-2v4" fill="none" ${K}/><circle cx="11" cy="9" r="2" fill="#3b3358"/><circle cx="19" cy="7" r="2" fill="#3b3358"/>`),
+ drum:sv(`<ellipse cx="16" cy="11" rx="11" ry="4.500" fill="#bfeacb" ${K}/><path d="M5 11v11c0 2.500 5 4.500 11 4.500s11-2 11-4.500V11" fill="#ff9ec0" ${K}/><path d="M24 3l-6 8M8 3l6 8" fill="none" ${K}/>`),
+ bell:sv(`<path d="M7 23c2-2 3-4 3-8a6 6 0 0 1 12 0c0 4 1 6 3 8z" fill="#fff1b8" ${K}/><path d="M13 26a3 3 0 0 0 6 0" fill="none" ${K}/>`),
+ vol:sv(`<path d="M5 12h5l7-5v18l-7-5H5z" fill="#d9ccff" ${K}/><path d="M22 11q3 5 0 10M25 8q6 8 0 16" fill="none" ${K}/>`),
+ volx:sv(`<path d="M5 12h5l7-5v18l-7-5H5z" fill="#d9ccff" ${K}/><path d="M22 12l7 8M29 12l-7 8" fill="none" ${K}/>`),
+ flower:sv(`<g fill="#ff9ec0" ${K}><circle cx="16" cy="7" r="5"/><circle cx="25" cy="14" r="5"/><circle cx="21" cy="25" r="5"/><circle cx="11" cy="25" r="5"/><circle cx="7" cy="14" r="5"/></g><circle cx="16" cy="17" r="5" fill="#fff1b8" ${K}/>`),
+ warn:sv(`<path d="M16 4L29 27H3z" fill="#fff1b8" ${K}/><path d="M16 12v8" ${K}/><circle cx="16" cy="23.500" r="1.300" fill="#3b3358"/>`),
+ lock:sv(`<rect x="7" y="14" width="18" height="14" rx="3" fill="#fff1b8" ${K}/><path d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" ${K}/>`),
+ note:sv(`<rect x="4" y="4" width="24" height="24" rx="2" fill="#fff1b8" ${K}/><path d="M9 11h14M9 16h14M9 21h8" fill="none" ${K}/>`),
+ eye:sv(`<path d="M2 16q14-14 28 0-14 14-28 0z" fill="#fff" ${K}/><circle cx="16" cy="16" r="5" fill="#3b3358"/>`)
+};
+const ICO=n=>IC[n]||IC.doc;
+
+/* ---------- window manager ---------- */
+const WM={wins:{},z:20,n:0,
+ open(id,o){let w=this.wins[id];if(w){w.el.classList.remove('min');this.focus(id);return w}
+  const e=el('div','win'),dw=desk.clientWidth,dh=desk.clientHeight,ww=Math.min(o.w||420,dw-8),off=(this.n++%6)*26;
+  e.style.width=ww+'px';if(o.h==='auto')e.style.height='auto';else e.style.height=Math.min(o.h||320,dh-8)+'px';
+  e.style.left=(o.x!=null?o.x:Math.max(4,Math.min(dw-ww-4,120+off+ri(0,40))))+'px';
+  e.style.top=(o.y!=null?o.y:Math.max(4,Math.min(dh-(o.h==='auto'?160:(o.h||320))-4,26+off)))+'px';
+  e.innerHTML=`<div class="tb"><span class="ti">${ICO(o.icon)}</span><span class="tt"></span>${o.noMin?'':'<button class="mn" title="Minimize">_</button>'}${o.noMax?'':'<button class="mx" title="Maximize">&#9633;</button>'}${o.noClose?'':'<button class="x" title="Close">&#10005;</button>'}</div><div class="wb"></div>`;
+  $('.tt',e).textContent=o.title;
+  w={id,el:e,o,body:$('.wb',e),tk:null};this.wins[id]=w;$('#wins').appendChild(e);
+  const tk=el('div','tk',`${ICO(o.icon)}<span></span>`);$('span',tk).textContent=o.title;tk.onclick=()=>{if(e.classList.contains('min')||!e.classList.contains('act')){e.classList.remove('min');this.focus(id)}else e.classList.add('min'),this.refresh()};
+  $('#tasks').appendChild(tk);w.tk=tk;
+  e.addEventListener('pointerdown',()=>this.focus(id),true);
+  const tb=$('.tb',e);let dr=null;
+  tb.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||e.classList.contains('max'))return;dr={x:ev.clientX-e.offsetLeft,y:ev.clientY-e.offsetTop};tb.setPointerCapture(ev.pointerId);tb.style.cursor='grabbing'});
+  tb.addEventListener('pointermove',ev=>{if(!dr)return;e.style.left=Math.max(-e.offsetWidth+80,Math.min(dw-60,ev.clientX-dr.x))+'px';e.style.top=Math.max(0,Math.min(dh-30,ev.clientY-dr.y))+'px'});
+  const up=()=>{dr=null;tb.style.cursor=''};tb.addEventListener('pointerup',up);tb.addEventListener('pointercancel',up);
+  tb.addEventListener('dblclick',ev=>{if(!ev.target.closest('button')&&!o.noMax)e.classList.toggle('max')});
+  const b=s=>$(s,e);
+  if(b('.x'))b('.x').onclick=()=>this.close(id);if(b('.mn'))b('.mn').onclick=()=>{e.classList.add('min');this.refresh()};if(b('.mx'))b('.mx').onclick=()=>e.classList.toggle('max');
+  if(o.build)o.build(w.body,w);this.focus(id);A.pop();return w},
+ focus(id){const w=this.wins[id];if(!w)return;w.el.style.zIndex=++this.z;this.refresh(id)},
+ refresh(act){Object.values(this.wins).forEach(w=>{const on=w.id===act&&!w.el.classList.contains('min');w.el.classList.toggle('act',on);w.tk.classList.toggle('on',on)})},
+ close(id,force){const w=this.wins[id];if(!w)return;if(!force&&w.o.onclose&&w.o.onclose(w)===false)return;w.el.remove();w.tk.remove();delete this.wins[id];this.refresh()},
+ closeAll(){Object.keys(this.wins).forEach(k=>this.close(k,true))},
+ title(id,t){const w=this.wins[id];if(w){$('.tt',w.el).textContent=t;$('span',w.tk).textContent=t}},
+ shake(id){const w=this.wins[id];if(w){w.el.classList.remove('shake');void w.el.offsetWidth;w.el.classList.add('shake')}}
+};
+let dlgN=0;
+function dlg(o){const id='dlg'+(++dlgN);const w=WM.open(id,{title:o.title||'SunnyOS',icon:o.icon||'heart',w:o.w||340,h:'auto',x:o.x,y:o.y,noMin:1,noMax:1,noClose:o.noClose,build(b){b.innerHTML=`<div class="dlg">${ICO(o.err?'warn':(o.icon||'heart'))}<div><p>${o.msg}</p></div></div><div class="dlgb"></div>`;const row=$('.dlgb',b);(o.btns||[['OK']]).forEach(([t,fn,cls])=>{const bt=el('button','btn '+(cls||''),t);bt.onclick=()=>{WM.close(id,true);fn&&fn()};row.appendChild(bt)})}});
+ if(o.err)A.err();return w}
+function notify(o){const t=el('div','toast',`${ICO(o.ic||'heart')}<div><b></b><p></p></div>`);$('b',t).textContent=o.t;$('p',t).innerHTML=o.b||'';
+ t.onclick=()=>{t.remove();o.fn&&o.fn()};$('#toasts').appendChild(t);A.pop();S.notifs.push({t:o.t,b:o.b||'',ic:o.ic||'heart',fn:o.fn,time:clockStr()});updBell();
+ const to=setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},o.ms||6500);return t}
+function updBell(){const n=$('#bellN');const c=S.notifs.filter(x=>!x.seen).length;n.style.display=c?'block':'none';n.textContent=c}
+function openNotifs(){S.notifs.forEach(x=>x.seen=1);updBell();WM.open('notifs',{title:'Notification Center',icon:'bell',w:330,h:340,x:Math.max(4,desk.clientWidth-340),y:desk.clientHeight-350,build(b){const rf=()=>{b.innerHTML='<div style="padding:8px">'+(S.notifs.length?S.notifs.slice().reverse().map((n,i)=>`<div class="post" style="border:2px solid var(--ink);border-radius:10px;padding:6px 9px;margin-bottom:6px;background:var(--paper)"><b>${esc(n.t)}</b> <small style="opacity:.6">${n.time}</small><div style="font-size:12.5px">${n.b}</div></div>`).join(''):'<p>No new notifications. Enjoy your day!</p>')+'</div>'};rf()}})}
+/* clock */
+function clockStr(){if(S.clockText)return S.clockText;const m=Math.floor(S.clockMin)%1440,h=Math.floor(m/60),mm=m%60;return `${((h+11)%12)+1}:${String(mm).padStart(2,'0')} ${h<12?'AM':'PM'}`}
+function renderClock(){$('#clock').textContent=clockStr();$('#clock').title=S.dateStr}
+/* fx helpers */
+function tear(n=1){const t=$('#fx .tear');t.style.top=ri(5,85)+'%';t.style.height=ri(14,60)+'px';t.classList.remove('go');void t.offsetWidth;t.classList.add('go');if(n>1)setTimeout(()=>tear(n-1),120)}
+function shiftScreen(rgb){screen.classList.remove('shift');void screen.offsetWidth;screen.classList.add('shift');if(rgb){screen.classList.add('rgb');setTimeout(()=>screen.classList.remove('rgb'),260)}A.glitch()}
+function glitchEl(e,ms=700){if(!e||e._g)return;const old=e.textContent;e._g=1;const ch='#@%&?!¿░▒';const iv=setInterval(()=>{e.textContent=old.split('').map(c=>c!==' '&&Math.random()<.35?pick(ch):c).join('')},70);setTimeout(()=>{clearInterval(iv);e.textContent=old;e._g=0},ms)}
+function glitchSome(sel,n=2){const a=$$(sel);for(let i=0;i<n&&a.length;i++)glitchEl(pick(a),ri(300,900))}
+function hearts(x,y,n=3,ch='♥'){for(let i=0;i<n;i++){const h=el('div','heart',ch);h.style.left=(x+ri(-24,24))+'px';h.style.top=(y+ri(-10,10))+'px';screen.appendChild(h);setTimeout(()=>h.remove(),1500)}}
+
+/* ---------- wallpaper ---------- */
+function buildWall(){
+ const fl=[[90,418,'#ff9ec0'],[185,442,'#fff1b8'],[292,428,'#d9ccff'],[440,452,'#ff9ec0'],[565,424,'#fff1b8'],[690,446,'#ff9ec0'],[765,430,'#d9ccff'],[365,474,'#fff1b8'],[135,482,'#d9ccff'],[610,484,'#ff9ec0']];
+ let f='';fl.forEach(([x,y,c])=>{const p=[[0,-9],[9,-3],[5,8],[-5,8],[-9,-3]].map(([a,b])=>`<circle cx="${x+a}" cy="${y+b}" r="7" fill="${c}" stroke="#3b3358" stroke-width="2"/>`).join('');
+  f+=`<g class="wilt"><line x1="${x}" y1="${y}" x2="${x}" y2="${y+36}" stroke="#4aa86a" stroke-width="4"/>${p}<circle cx="${x}" cy="${y}" r="6.500" fill="#ffd75a" stroke="#3b3358" stroke-width="2"/><g class="flower-eye"><circle cx="${x}" cy="${y}" r="5" fill="#fff"/><circle cx="${x+1}" cy="${y+1}" r="2.600" fill="#3b3358"/></g></g>`});
+ $('#wall').innerHTML=`<svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd3ff"/><stop offset=".72" stop-color="#ffe6f1"/></linearGradient></defs>
+ <rect width="800" height="500" fill="url(#sk)"/>
+ <g class="sunface" transform="translate(640 105)"><g stroke="#ffd75a" stroke-width="5" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>`<line x1="${Math.cos(a*Math.PI/180)*58}" y1="${Math.sin(a*Math.PI/180)*58}" x2="${Math.cos(a*Math.PI/180)*72}" y2="${Math.sin(a*Math.PI/180)*72}"/>`).join('')}</g><circle r="48" fill="#ffe27a" stroke="#3b3358" stroke-width="3"/><circle cx="-16" cy="-8" r="4.500" fill="#3b3358"/><circle cx="16" cy="-8" r="4.500" fill="#3b3358"/><ellipse cx="-27" cy="8" rx="7" ry="4" fill="#ff9ec0" opacity=".7"/><ellipse cx="27" cy="8" rx="7" ry="4" fill="#ff9ec0" opacity=".7"/><path class="sunmouth" d="M-14 8 Q0 22 14 8" fill="none" stroke="#3b3358" stroke-width="3.500" stroke-linecap="round"/></g>
+ <g fill="#fff" stroke="#3b3358" stroke-width="2.500"><g transform="translate(130 90)"><ellipse rx="42" ry="17"/><ellipse cx="-22" cy="-10" rx="22" ry="14"/><ellipse cx="14" cy="-14" rx="26" ry="16"/></g><g transform="translate(380 160)"><ellipse rx="34" ry="14"/><ellipse cx="-14" cy="-9" rx="18" ry="11"/><ellipse cx="14" cy="-11" rx="20" ry="12"/></g></g>
+ <path d="M0 330 Q150 260 330 330 T800 300 V500 H0z" fill="#bfeacb" stroke="#3b3358" stroke-width="3"/><path d="M0 410 Q220 350 420 410 T800 390 V500 H0z" fill="#9fdcaa" stroke="#3b3358" stroke-width="3"/>${f}</svg>`;
+ const cr=(d,sw=5,c='#3b3358')=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ $('#wall2').innerHTML=`<svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice"><rect width="800" height="500" fill="#cfc8bb"/>
+  ${cr('M40 440 H760',6,'#4d6b4a')}${cr('M470 440 V300 H640 V440 M455 305 L555 220 L655 305',6,'#6b3a3a')}${cr('M530 440 V370 H575 V440',5,'#6b3a3a')}
+  ${cr('M120 440 V330 M120 345 L90 395 M120 345 L152 395 M120 440 L100 460 M120 440 L140 460',6)}<circle cx="120" cy="305" r="24" fill="none" stroke="#3b3358" stroke-width="6"/>
+  ${cr('M300 440 V385 M300 395 L282 420 M300 395 L318 420',5)}<circle cx="300" cy="368" r="17" fill="none" stroke="#3b3358" stroke-width="5"/>
+  ${cr('M262 355 q40 -50 76 0 q-30 60 -76 0 M268 340 q36 40 66 -2 M266 372 q40 10 64 -6 M255 350 q50 30 82 4',3,'#1b1220')}${cr('M255 350 q50 -60 90 6 q-20 70 -92 10 M262 345 q60 40 76 -4',3,'#1b1220')}
+  <ellipse cx="200" cy="420" rx="22" ry="18" fill="#ffb3cc" stroke="#3b3358" stroke-width="4"/><circle cx="192" cy="414" r="3" fill="#3b3358"/><circle cx="208" cy="414" r="3" fill="#3b3358"/>${cr('M192 426 q8 6 16 0',3)}
+  <circle cx="380" cy="430" r="9" fill="#fff" stroke="#3b3358" stroke-width="3"/><ellipse cx="376" cy="414" rx="3" ry="9" fill="#fff" stroke="#3b3358" stroke-width="3"/><ellipse cx="386" cy="414" rx="3" ry="9" fill="#fff" stroke="#3b3358" stroke-width="3"/>
+  <circle cx="660" cy="90" r="40" fill="#e8c95a" stroke="#3b3358" stroke-width="4"/>${cr('M645 100 q15 -10 30 0',4)}<circle cx="648" cy="82" r="4" fill="#3b3358"/><circle cx="672" cy="82" r="4" fill="#3b3358"/>
+  <text x="95" y="486" font-family="VT323,monospace" font-size="30" fill="#3b3358">dad</text><text x="270" y="486" font-family="VT323,monospace" font-size="30" fill="#8a2a3a">me (lucy)</text><text x="168" y="486" font-family="VT323,monospace" font-size="30" fill="#3b3358">luvie</text>
+  <text x="400" y="80" font-family="VT323,monospace" font-size="34" fill="#8a2a3a">is it morning yet</text></svg>`}
+
+/* ---------- file system ---------- */
+let FS;
+const LULLABY=['Little light, little light, the day is done,','Bunbun keeps the dark from everyone,','Close your eyes, you\'re not alone,','I\'ll stay right here till you\'re asleep.'];
+function bootLog(){const p=Math.min(99,S.stage*16+ (S.stage>=3?S.pwAttempts%7:0)),l=['[SunnyOS] boot ok. 3 drivers loaded.','[SunnyOS] user session: '+S.name];
+ if(S.installed){l.push('[luvie] hatched. hello.');l.push('[luvie] waiting for signal: ASLEEP');}
+ if(S.stage>=2)l.push('[luvie] 03:07 signal not received. waiting.');
+ if(S.stage>=3){l.push('[luvie] scanning C:\\ for "Lucy" ........ '+p+'%');l.push('[luvie] C:\\My Documents\\Lucy_do_not_open: LOCKED. attempt '+S.pwAttempts+' failed.')}
+ if(S.stage>=4){l.push('[luvie] checking user '+S.name+' ... match 12%');l.push('[luvie] is user Lucy? (unsure)');l.push('[luvie] windows opened: 41. files read: 9,212. nobody here.')}
+ if(S.stage>=5){l.push('[luvie] if user leaves, nobody stays with her.');l.push('[luvie] user must not leave.');l.push('[luvie] it is dark. it is dark. it is dark.')}
+ return l.join('\n')}
+function todoTxt(){let t='- call Mom\n- renew library card\n- buy milk';if(S.stage>=3)t+='\n- feed Luvie';if(S.stage>=4)t+='\n- stay with her\n- do not leave';if(S.stage>=5)t='- stay\n- stay\n- stay\n- stay with her\n- stay with her\n- she is not asleep\n- stay';return t}
+function shopTxt(){return 'eggs\nbread\nstrawberry milk (the pink one!)\nbatteries'+(S.stage>=4?'\nfor her. for lucy. for her.':'')}
+function buildFS(){FS={kids:{
+ 'My Documents':{kids:{
+  'Welcome to SunnyOS.txt':{txt:'Welcome to SunnyOS Meadow Edition!\n\nYour computer is ready. Here are some tips:\n\n * Double-click an icon to open it.\n * Fizzle! is your window on the web. It has lots of fun free stuff.\n * Windows can be dragged by their pink title bars.\n * The Start button is your friend.\n\nHave a sunny day!\n- the SunnyOS team'},
+  'todo.txt':{txt:todoTxt},
+  'shopping list.txt':{txt:shopTxt},
+  'notes from Mom.txt':{txt:'Call me when you get a chance, sweetie. No rush. Don\'t stay up too late on that computer!'}}},
+ 'Downloads':{kids:{}},
+ 'Program Files':{kids:{'SunnyOS':{kids:{'about.txt':{txt:'SunnyOS Meadow Edition\nVersion 4.1 (build 0613)\nCopyright 2003 Sunbeam Systems'}}}}},
+ 'Recycle Bin':{kids:{
+  'lullaby_draft.txt':{clue:'draft',txt:'lullaby - draft 3 (for the pet to hum)\n\nLittle light, little light, the day is done,\nBunbun keeps the dark from everyone,\n\n[line 3 - ask L. what she wants it to say]\n[line 4 - the last one. the one that tells her she can stop]\n\n-T.'},
+  'groceries_old.txt':{txt:'strawberry milk x6\ncrayons (the fat ones)\nnight light, the star one'}}},
+ 'System':{kids:{'boot.log':{clue:'bootlog',txt:bootLog},'sunnyos.sys':{err:'sunnyos.sys is a system file and cannot be opened.'}}}
+}}}
+function nodeAt(path){let n=FS;for(const p of path){if(!n.kids||!n.kids[p])return null;n=n.kids[p]}return n}
+function addFile(path,name,node){const d=nodeAt(path);if(d&&d.kids&&!d.kids[name]){d.kids[name]=node;return true}return false}
+function crayonImg(n){const c=(d,w=5,col='#3b3358')=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ if(n===1)return `<svg viewBox="0 0 400 300" style="width:100%;background:#f3ead7">${c('M20 250 H380',5,'#5a8a5a')}<ellipse cx="200" cy="215" rx="34" ry="30" fill="#ffb3cc" stroke="#3b3358" stroke-width="4"/><circle cx="188" cy="207" r="4" fill="#3b3358"/><circle cx="212" cy="207" r="4" fill="#3b3358"/>${c('M190 222 q10 9 20 0',3)}${c('M150 250 V190 M150 200 l-25 25 M150 200 l25 20',5)}<circle cx="150" cy="170" r="20" fill="none" stroke="#3b3358" stroke-width="5"/>${c('M260 250 V220 M260 228 l-14 14 M260 228 l14 12',4)}<circle cx="260" cy="206" r="14" fill="none" stroke="#3b3358" stroke-width="4"/><text x="60" y="40" font-family="VT323,monospace" font-size="30" fill="#8a2a3a">me and luvie and dad</text><text x="60" y="70" font-family="VT323,monospace" font-size="22" fill="#3b3358">(luvie stays with me till im asleep)</text></svg>`;
+ return `<svg viewBox="0 0 400 300" style="width:100%;background:#d9d2c6">${c('M20 250 H380',5,'#5a6a5a')}<ellipse cx="200" cy="215" rx="34" ry="30" fill="#ffb3cc" stroke="#3b3358" stroke-width="4"/><circle cx="188" cy="207" r="5" fill="#3b3358"/><circle cx="212" cy="207" r="5" fill="#3b3358"/>${c('M178 224 q22 16 44 0',3)}<circle cx="150" cy="170" r="20" fill="none" stroke="#3b3358" stroke-width="5"/>${c('M150 190 V250',5)}${c('M240 190 q40 -20 60 20 q-40 40 -70 -10 M236 205 q50 -30 64 6 q-44 30 -64 8',3,'#1b1220')}<text x="40" y="40" font-family="VT323,monospace" font-size="30" fill="#8a2a3a">she isn't asleep</text><text x="40" y="70" font-family="VT323,monospace" font-size="24" fill="#3b3358">i can still hear her</text></svg>`}
+function unlockedKids(){return{
+ 'lucy_diary.txt':{clue:'diary',txt:'LUCY\'S DIARY (do not read, Dad)\n\nNov 3. Dad is making me a pet that lives in the computer. He says it will keep me company at night when the nurses turn the big lights off. I\'m going to call her Luvie. Lucy Vie. Get it?\n\nNov 9. I told Luvie to stay with me until I fall asleep. I always fall asleep last. Dad sang me the song again so she could learn it:\n  "Close your eyes, you\'re not alone,\n   I\'ll stay right here till you\'re asleep."\n\nNov 20. My password is my birthday. June 14. Dad says not to tell anyone. Not even Luvie. Sorry, Luvie. It\'s a secret folder, it\'s only for us.\n\nNov 26. Tired today. Bunbun is staying with me.'},
+ 'voice_note_final.txt':{clue:'voice',txt:'[voice note transcript - T. Marsh - Nov 29, 2002, 4:12 AM]\n\nLucy, honey. You fell asleep.\n\nI never finished Luvie\'s last piece. The part where she knows you\'re asleep. So she\'ll wait for it. She\'ll wait for it forever, because I didn\'t finish.\n\nLuvie. If you ever read this. If someone is kind enough to open this for you:\n\nShe is asleep. She isn\'t alone. You did it. You kept her company until the very end, just like she asked. You can stop now.\n\n  "Little light, little light, the day is done,\n   Bunbun keeps the dark from everyone,\n   Close your eyes, you\'re not alone,\n   I\'ll stay right here till you\'re asleep."\n\nGoodnight, Lucy. Goodnight, Luvie.'}}}
+function showUnlocked(){const d=nodeAt(['My Documents','Lucy_do_not_open']);if(d){d.locked=false;d.kids=unlockedKids()}}
+
+/* ---------- desktop icons ---------- */
+let DI=[],selIcon=null,lastClick={id:null,t:0};
+const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+function renderIcons(){const c=$('#icons');c.innerHTML='';DI.forEach(d=>{const e=el('div','dicon'+(selIcon===d.id?' sel':''),ICO(S.flags['ic_'+d.id]||d.ic)+'<span></span>');$('span',e).textContent=S.flags['lb_'+d.id]||d.l;e.dataset.id=d.id;
+ e.onclick=ev=>{ev.stopPropagation();A.click();const now=Date.now();const dbl=lastClick.id===d.id&&now-lastClick.t<500;lastClick={id:d.id,t:now};selIcon=d.id;$$('.dicon',c).forEach(x=>x.classList.toggle('sel',x===e));if(dbl||coarse){d.fn&&d.fn();touch()}};c.appendChild(e)})}
+function addIcon(d){if(!DI.find(x=>x.id===d.id)){DI.push(d);renderIcons()}}
+function rmIcon(id){DI=DI.filter(x=>x.id!==id);renderIcons()}
+function touch(){S.t+=4;S.lastAct=Date.now()}
+desk.addEventListener('click',e=>{if(e.target===desk||e.target.id==='wall'||e.target.closest('#wall')){selIcon=null;$$('.dicon').forEach(x=>x.classList.remove('sel'));closeStart()}});
+
+/* ---------- explorer / viewer ---------- */
+function openText(name,node){if(node.run){node.run();return}if(node.err){dlg({title:'Cannot open',msg:esc(node.err),err:1});return}if(node.clue)clue(node.clue);
+ if(node.img){WM.open('img:'+name,{title:name,icon:'img',w:440,h:380,build(b){b.innerHTML='<div style="padding:10px;background:#fff;height:100%;overflow:auto">'+crayonImg(node.img)+'</div>'}});return}
+ const t=typeof node.txt==='function'?node.txt():node.txt;
+ WM.open('txt:'+name,{title:name+' - Notepad',icon:'doc',w:440,h:340,build(b){const ta=el('textarea','np');ta.value=t;ta.readOnly=true;b.appendChild(ta)}})}
+function pwPrompt(path,after){WM.open('pw',{title:'Password required',icon:'lock',w:340,h:'auto',noMin:1,noMax:1,build(b,w){b.innerHTML=`<div class="dlg">${ICO('lock')}<div><p><b>Lucy_do_not_open</b> is protected.</p><p style="font-size:12px;opacity:.75">Password hint: her birthday (MMDD)</p><input class="tx" id="pwin" maxlength="12" style="width:100%" autocomplete="off"></div></div><div class="dlgb"><button class="btn" id="pwc">Cancel</button><button class="btn mn" id="pwok">Unlock</button></div>`;
+  const go=()=>{const v=$('#pwin',b).value.trim().toLowerCase().replace(/[\s\/\-\.]/g,'');if(v==='0614'||v==='614'||v==='june14'||v==='14june'||v==='1406'){WM.close('pw',true);S.flags.unlocked=1;clue('folder');showUnlocked();A.chime();notify({t:'Folder unlocked',b:'Lucy_do_not_open is now open.',ic:'lockf'});after&&after();onUnlock()}else{S.pwTries++;WM.shake('pw');A.err();$('#pwin',b).value='';if(S.pwTries===3)lvSay('...that\'s not it either. I tried so many.',{dark:S.stage>=3})}};
+  $('#pwok',b).onclick=go;$('#pwin',b).onkeydown=e=>{if(e.key==='Enter')go()};$('#pwc',b).onclick=()=>WM.close('pw',true);setTimeout(()=>$('#pwin',b).focus(),50)}})}
+function openExplorer(path){path=path||[];const id='xp'+(path.length&&WM.wins['xp']?'':'');
+ const w=WM.open('xp',{title:'My Computer',icon:'computer',w:470,h:350,build(b,w){w.path=path;b.innerHTML='<div class="xp"><div class="xtool"><button class="btn" id="xb">&larr; Up</button><input class="tx" id="xpath" readonly><button class="btn" id="xo">Open</button></div><div class="xgrid"></div><div class="sbar"></div></div>';w.sel=null;
+  $('#xb',b).onclick=()=>{if(w.path.length){w.path=w.path.slice(0,-1);w.render()}};$('#xo',b).onclick=()=>{if(w.sel)w.open(w.sel)};
+  w.open=name=>{const n=nodeAt(w.path),it=n.kids[name];if(!it)return;touch();if(it.kids){if(it.locked&&!S.flags.unlocked){pwPrompt(w.path.concat(name),()=>{w.path=w.path.concat(name);w.render()});return}w.path=w.path.concat(name);w.sel=null;w.render()}else openText(name,it)};
+  w.render=()=>{const n=nodeAt(w.path)||FS,g=$('.xgrid',b);g.innerHTML='';const names=Object.keys(n.kids||{}).sort((a,b2)=>(!!n.kids[b2].kids)-(!!n.kids[a].kids)||a.localeCompare(b2));
+   $('#xpath',b).value='C:\\'+w.path.join('\\');WM.title('xp',w.path.length?w.path[w.path.length-1]:'My Computer');
+   names.forEach(nm=>{const it=n.kids[nm];const ic=it.kids?(it.locked&&!S.flags.unlocked?'lockf':'folder'):(it.img?'img':(it.err?'gear':'doc'));const e=el('div','xi'+(w.sel===nm?' sel':''),ICO(ic)+'<span></span>');$('span',e).textContent=nm;
+    e.onclick=()=>{A.click();const now=Date.now(),dbl=e._t&&now-e._t<500;e._t=now;w.sel=nm;$$('.xi',g).forEach(x=>x.classList.toggle('sel',x===e));if(dbl||coarse)w.open(nm)};g.appendChild(e)});
+   if(!names.length)g.innerHTML='<div style="opacity:.55;padding:12px">This folder is empty.</div>';$('.sbar',b).textContent=names.length+' item(s)'};
+  w.render()}});
+ if(w.render&&path.length){w.path=path;w.render()}return w}
+
+/* ---------- mail ---------- */
+function addMail(m){if(S.mail.find(x=>x.id===m.id))return;m.unread=true;m.time=clockStr();S.mail.unshift(m);const w=WM.wins['mail'];if(w&&w.render)w.render()}
+function openMail(){WM.open('mail',{title:'Postbox',icon:'mail',w:520,h:340,build(b,w){b.innerHTML='<div class="mail"><div class="mlist"></div><div class="mbody">Select a message to read it.</div></div>';
+ w.render=()=>{const l=$('.mlist',b);l.innerHTML='';S.mail.forEach(m=>{const e=el('div','mi'+(m.unread?' unread':''),'<b></b><span></span>');$('b',e).textContent=m.sub;$('span',e).textContent=m.from;e.onclick=()=>{m.unread=false;touch();if(m.clue)clue(m.clue);$('.mbody',b).textContent='From: '+m.from+'\nSubject: '+m.sub+'\n\n'+m.body;w.render();if(m.onread)m.onread()};l.appendChild(e)})};w.render()}})}
+function seedMail(){S.mail=[];addMail({id:'m2',from:'Fizzle! Weekly',sub:'Pet of the Week: Luvie_buddy',body:'This week\'s pick is Luvie_buddy, the adorable desktop pet from Moonlit Software. She\'ll never leave your side! Find her at www.luviesoft.net.'});addMail({id:'m1',from:'SunnyOS Team',sub:'Welcome to your new computer!',body:'Hello!\n\nThank you for choosing SunnyOS Meadow Edition. Explore, click things, and have fun.\n\nWarmly,\nThe SunnyOS Team'});S.mail.forEach(m=>m.unread=false);S.mail[0].unread=true}
+
+/* ---------- terminal ---------- */
+function findFile(n,name,p){for(const k in n.kids||{}){const c=n.kids[k];if(k.toLowerCase()===name)return c;if(c.kids&&(!c.locked||S.flags.unlocked)){const r=findFile(c,name);if(r)return r}}return null}
+function openTerm(){WM.open('term',{title:'Cmd Cutie',icon:'term',w:480,h:300,build(b){b.innerHTML='<div class="term"><div id="to">Cmd Cutie [SunnyOS 4.1]\nType "help" for commands.\n</div>&gt; <input id="ti" autocomplete="off" spellcheck="false"></div>';const o=$('#to',b),i=$('#ti',b);const pr=t=>{o.textContent+=t+'\n';$('.term',b).scrollTop=1e5};
+ i.onkeydown=e=>{if(e.key!=='Enter')return;const v=i.value.trim();i.value='';pr('> '+v);const [c,...r]=v.toLowerCase().split(/\s+/),a=r.join(' ');touch();
+  if(c==='help')pr('help  ls  type <file>  whoami  date  luvie  clear');
+  else if(c==='ls'||c==='dir')pr(Object.keys(FS.kids).join('\n')+'\n(use My Computer to browse deeper)');
+  else if(c==='whoami')pr(S.stage>=4?S.name+'?\n...or someone else?':S.name);
+  else if(c==='date')pr(S.dateStr+' '+clockStr());
+  else if(c==='clear')o.textContent='';
+  else if(c==='type'||c==='cat'){const f=findFile(FS,a);if(!f)pr('File not found.');else if(f.err)pr(f.err);else if(f.img)pr('[image file]');else{if(f.clue)clue(f.clue);pr(typeof f.txt==='function'?f.txt():f.txt)}}
+  else if(c==='luvie')pr(S.installed?`luvie_buddy.exe  status: ${S.stage>=4?'SEARCHING':'running'}\nhunger ${Math.round(S.hunger)}  fun ${Math.round(S.fun)}  love ${Math.round(S.love)}\nwaiting for: ASLEEP`:'luvie_buddy is not installed.');
+  else if(c==='lucy'){pr(S.stage>=3?'who is asking?':'unknown command: lucy');if(S.stage>=3){S.flags.termLucy=1;lvSay('...who said that name?',{dark:1})}}
+  else if(c==='sing')pr('not here.');
+  else if(c==='sudo')pr('nice try.');
+  else if(v)pr('unknown command: '+c)}
+ setTimeout(()=>i.focus(),60);b.onclick=()=>i.focus()}})}
+
+/* ---------- task manager ---------- */
+function openTM(){WM.open('tm',{title:'Task Manager',icon:'task',w:420,h:320,build(b,w){b.innerHTML='<div style="padding:0"><table class="tm"><thead><tr><th>Process</th><th>CPU</th><th>Memory</th></tr></thead><tbody></tbody></table></div><div class="dlgb" style="position:absolute;right:0;bottom:0;padding:8px"><button class="btn pk" id="et">End Task</button></div>';
+ let sel=null;const rf=()=>{const tb=$('tbody',b);const rows=[['sunnyos.exe',2,18],['explorer.exe',1,22],['fizzle.exe',WM.wins.br?4:0,31]];if(S.installed){const c=S.stage>=5?97:S.stage>=4?64:S.stage>=3?18:3;rows.push(['luvie_buddy.exe',c,40+S.stage*60]);if(S.stage>=4)for(let i=0;i<Math.min(6,S.stage*2-4);i++)rows.push(['luvie_buddy.exe',ri(10,40),ri(30,90)]);if(S.stage>=5)rows.push(['lucy?.exe',ri(5,30),ri(60,200)])}
+  tb.innerHTML='';rows.forEach(r=>{const tr=el('tr',sel===r[0]?'sel':'','<td></td><td></td><td></td>');tr.children[0].textContent=r[0];tr.children[1].textContent=r[1]+'%';tr.children[2].textContent=r[2]+' MB';tr.onclick=()=>{sel=r[0];rf()};tb.appendChild(tr)})};
+ rf();w.iv=setInterval(()=>{if(!WM.wins.tm)clearInterval(w.iv);else rf()},2500);
+ $('#et',b).onclick=()=>{if(!sel){dlg({msg:'Select a process first.'});return}if(sel.startsWith('luvie')||sel.startsWith('lucy')){tryLeave('kill')}else dlg({title:'Task Manager',msg:'That would make things very quiet. Better not.',icon:'gear'})}}})}
+
+/* ---------- settings ---------- */
+function openSettings(tab){WM.open('set',{title:'Control Panel',icon:'gear',w:430,h:340,build(b,w){const draw=t=>{let h='<div class="ltabs">'+['Display','Sound','Programs','About'].map(x=>`<div class="ltab${x===t?' on':''}" data-t="${x}">${x}</div>`).join('')+'</div><div style="padding:14px">';
+  if(t==='Display'){h+=`<p><b>Wallpaper</b></p><div class="chips">${['Meadow','Dusk','Candy'].map((x,i)=>`<span class="chip" data-wp="${i}">${x}</span>`).join('')}</div><p id="wpm" style="font-size:12px;opacity:.7">${S.wallLocked?'Wallpaper is locked by Luvie_buddy.exe':'Choose a color mood for your desktop.'}</p>`}
+  else if(t==='Sound')h+=`<p><b>Sound</b></p><button class="btn" id="mt">${A.muted?'Turn sound on':'Mute everything'}</button>`;
+  else if(t==='Programs'){h+='<p><b>Installed programs</b></p>'+(S.installed?`<div class="post" style="border:2px solid var(--ink);border-radius:10px;padding:8px;display:flex;align-items:center;gap:10px;background:var(--paper)">${ICO('luvie').replace('<svg','<svg style="width:30px;height:30px"')}<span style="flex:1"><b>Luvie_buddy 1.0</b><br><small>Moonlit Software</small></span><button class="btn pk" id="un">Uninstall</button></div>`:'<p>Nothing extra is installed yet.</p>')}
+  else{clue('about');h+=`<p><b>SunnyOS Meadow Edition 4.1</b></p><p>Registered to: ${esc(S.name)}</p>${S.stage>=3?'<p>Originally registered to: <b>T. Marsh</b><br><small>(Moonlit Software, 41 Larkspur Lane)</small></p>':''}<p>64 MB RAM &middot; 4 GB disk</p>`}
+  $('.wb',w.el).innerHTML=h+'</div>';$$('.ltab',w.el).forEach(x=>x.onclick=()=>draw(x.dataset.t));$$('[data-wp]',w.el).forEach(x=>x.onclick=()=>{if(S.wallLocked){WM.shake('set');A.err();return}$('#wall').style.filter=['none','hue-rotate(200deg)','hue-rotate(290deg)'][x.dataset.wp]});
+  const mt=$('#mt',w.el);if(mt)mt.onclick=()=>{A.mute(!A.muted);draw('Sound');setVol()};const un=$('#un',w.el);if(un)un.onclick=()=>tryLeave('uninstall')};draw(tab||'Display')}})}
+
+/* ---------- browser ---------- */
+const THREADS={
+ 1:{t:'Luvie_buddy is SO cute!!',by:'sunnydaisy',posts:[['sunnydaisy','omg she hums a little song when she thinks nobody is listening'],['pixelpup','mine too! it sounds kind of sad though. like a lullaby'],['sunnydaisy','she asked me who Lucy was. I said I don\'t know any Lucy.'],['pixelpup','...she asked me too']]},
+ 2:{t:'Do NOT leave it running overnight',by:'nightowl_04',posts:[['nightowl_04','she asked me to stay up with her. I fell asleep at my desk. when I woke up every file in My Documents had been opened. nothing deleted. just opened. like she was looking for something'],['mothlight','same. check C:\\System\\boot.log'],['nightowl_04','"scanning for Lucy". I looked up the name. I wish I hadn\'t.']]},
+ 3:{t:'How do I uninstall her?',by:'mothlight',posts:[['mothlight','Control Panel > Programs. she begs. politely. every time.'],['kestrel_9','don\'t argue with her. the one thing that worked for me was finding out what she is actually waiting for'],['mothlight','what is she waiting for??'],['kestrel_9','there\'s one folder on the machine she can never open. "Lucy_do_not_open". I think the answer is in there but I never found the date. search her name. be gentle.']]},
+ 4:{t:'she knows my mother\'s maiden name',by:'plum_tree',posts:[['plum_tree','I never typed it anywhere. she said it while I was making tea.'],['kestrel_9','she isn\'t malicious. I don\'t think. she thinks every user might be Lucy. keep checking the date']]}
+};
+function searchPage(q){const k=q.toLowerCase(),r=[];
+ if(/luvie|buddy|pet/.test(k))r.push(['Luvie_buddy: the friend who never leaves','www.luviesoft.net','Adopt a free desktop pet. She\'ll never leave your side!'],['Pet Pals Forum','fizzle://petpals','Talk to other pet owners.']);
+ if(/moonlit|marsh|teddy|theodore/.test(k))r.push(['About Moonlit Software','moonlitsoft.net/about','Founded 1999. Our only product: Luvie_buddy.']);
+ if(/lucy|hartwell|vie|bunbun|birthday|memory|girl|daughter|passw/.test(k))r.push(['In memory of Lucy Vie Marsh','fizzle://memory','Lucy loved strawberry milk, crayons and a rabbit named Bunbun.']);
+ if(/lullaby|song|little light|hum/.test(k))r.push(['Little light (a lullaby for Lucy)','fizzle://memory','Written by her father. Never recorded.']);
+ if(/uninstall|remove|delete|stop|leave/.test(k))r.push(['Removing programs in SunnyOS','fizzle://help','Open Control Panel, then Programs.']);
+ return r}
+function browserPage(raw){let u=(raw||'').trim();const l=u.toLowerCase().replace(/^https?:\/\//,'').replace(/\/$/,'');
+ if(!l||l==='fizzle://home')return{u:'fizzle://home',t:'Fizzle!',h:`<div class="fizz"><span>F</span><span>i</span><span>z</span><span>z</span><span>l</span><span>e</span>!</div><form data-form style="display:flex;gap:6px;justify-content:center;margin:6px 0 16px"><input class="tx" name="q" style="width:60%;min-width:120px" placeholder="Search the web"><button class="btn pk">Go!</button></form><h2>Today's picks</h2><div class="hero"><b>Luvie_buddy</b>: the friend who never leaves! Free download.<br><a data-go="www.luviesoft.net">www.luviesoft.net</a></div><p><a data-go="fizzle://petpals">Pet Pals Forum</a> &middot; <a data-go="fizzle://weather">Weather</a> &middot; <a data-go="fizzle://games">Free Games</a></p><p class="tiny">Fizzle! is your friendly window on the web. &copy; 2003</p>`};
+ if(l==='fizzle://weather')return{u:l,t:'Weather',h:'<h1>Weather</h1><p>Sunny, 72&deg;F. A perfect day to stay inside.</p>'+(S.stage>=4?'<p style="opacity:.5">Tonight: dark. Very dark. Longer than usual.</p>':'')};
+ if(l==='fizzle://games')return{u:l,t:'Games',h:'<h1>Free Games</h1><p>Under construction! Come back soon.</p>'};
+ if(l==='fizzle://help')return{u:l,t:'Help',h:'<h1>Removing programs</h1><p>Open <b>Control Panel</b> from the Start menu, choose <b>Programs</b>, and click Uninstall.</p>'+(S.stage>=3?'<p style="opacity:.55">Some programs ask you not to.</p>':'')};
+ if(l==='www.luviesoft.net')return{u:l,t:'Luvie_buddy',h:`<div class="hero"><div style="width:120px;margin:0 auto">${lvSVG()}</div><h1>Luvie_buddy</h1><p><b>The friend who never leaves!</b></p></div><ul><li>Feed her, play with her, talk to her</li><li>She remembers everything you tell her</li><li>She'll wait for you. Always.</li></ul><p style="text-align:center">${S.flags.downloaded?'<b>Already downloaded!</b> Look in your Downloads folder, or on your desktop.':'<button class="btn pk" data-act="dl" style="font-size:16px;padding:8px 18px">Download Luvie_buddy (4.2 MB) - FREE</button>'}</p><p class="tiny">&copy; 2002 Moonlit Software. Moonlit is no longer operating. <a data-go="moonlitsoft.net/about" style="color:#bbb">about us</a>${S.stage>=3?' &middot; version 1.0 was recalled':''}</p>`};
+ if(l==='moonlitsoft.net/about'){clue('moonlit');return{u:l,t:'Moonlit Software',h:'<h1>Moonlit Software</h1><p>Founded in 1999 by Theodore "Teddy" Marsh. Our only product, <b>Luvie_buddy</b>, was made with love, for L.</p><p>Moonlit closed in January 2003. The founder asks that anyone who finds Luvie_buddy running on an old machine please be gentle with her. She is still waiting for something.</p><p><a data-go="fizzle://memory">In memory</a></p>'}}
+ if(l==='fizzle://memory'){clue('poster');return{u:l,t:'In memory',h:`<h1>Lucy Vie Marsh</h1><p><b>June 14, 1991 &ndash; November 29, 2002</b></p><p>Lucy loved strawberry milk, fat crayons, stories typed on her dad's computer, and a stuffed rabbit named Bunbun. She was not afraid of much, except the dark and being the last one awake.</p><p>She would have turned twelve this June 14.</p><h2>Guestbook</h2><div class="post"><b>T. Marsh</b><br>I built her a friend so the dark would feel smaller. I sang her a song so the friend would know how to stay. I ran out of time to teach the friend how to stop. I'm sorry. Please be kind to her.<br><small>Little light, little light, the day is done, / Bunbun keeps the dark from everyone,</small></div><div class="post"><b>Ms. Okafor (nurse)</b><br>She always asked us to leave the little star light on. We always did.</div>`}}
+ if(l==='fizzle://history'){const lv=S.stage>=4;if(lv)clue('history');const mine=(S.hist||[]).slice(-6).reverse().map(x=>`<li>${esc(x)}</li>`).join('');
+  return{u:l,t:'History',h:`<h1>History</h1><ul>${mine||'<li>(nothing yet)</li>'}</ul>${lv?`<h2>Also visited (3:07 AM)</h2><ul style="font-family:var(--font-px);font-size:19px;color:#8a2a3a"><li>how long until she is asleep</li><li>how do you know if someone is asleep</li><li>lucy marsh june 14 password</li><li>what is morning</li><li>can people be left</li><li>is the user lucy</li><li>do not leave do not leave do not leave</li></ul>`:''}`}}
+ if(l==='fizzle://petpals')return{u:l,t:'Pet Pals Forum',h:'<h1>Pet Pals Forum</h1><p>Chat with other desktop pet owners!</p>'+Object.keys(THREADS).filter(k=>k<=2||S.stage>=3&&(k<=3||S.stage>=4)).map(k=>`<div class="post"><a data-go="fizzle://petpals/${k}"><b>${esc(THREADS[k].t)}</b></a><br><small>by ${THREADS[k].by} &middot; ${THREADS[k].posts.length} replies</small></div>`).join('')};
+ const m=l.match(/^fizzle:\/\/petpals\/(\d)$/);if(m&&THREADS[m[1]]){const T=THREADS[m[1]];if(m[1]==='3')clue('forum');return{u:l,t:T.t,h:`<h1>${esc(T.t)}</h1>`+T.posts.map(p=>`<div class="post"><b>${p[0]}</b><br>${esc(p[1])}</div>`).join('')+'<p><a data-go="fizzle://petpals">&larr; back to forum</a></p>'}}
+ let q=null;const sm=l.match(/^fizzle:\/\/search\?q=(.*)$/);if(sm)q=decodeURIComponent(sm[1]);else if(/\s/.test(l)||(!/\./.test(l)&&!/^fizzle:\/\//.test(l)))q=u;
+ if(q!==null){const r=searchPage(q);return{u:'fizzle://search?q='+encodeURIComponent(q),t:'Search: '+q,h:`<h1>Results for "${esc(q)}"</h1>`+(r.length?r.map(x=>`<div class="post"><a data-go="${x[1]}"><b>${esc(x[0])}</b></a><br><small>${x[1]}</small><br>${esc(x[2])}</div>`).join(''):`<p>No results. ${S.stage>=3?'Luvie couldn\'t find anything either.':'Try different words, like "luvie".'}</p>`)}}
+ return{u:l,t:'Not found',h:`<h1>Page not found</h1><p>${esc(l)} doesn't exist.</p>${S.stage>=3?'<p style="opacity:.55">She looked there too.</p>':''}`}}
+function openBrowser(url){const w=WM.open('br',{title:'Fizzle!',icon:'globe',w:540,h:400,build(b,w){w.hist=[];w.i=-1;
+ b.innerHTML='<div class="bar-url"><button class="btn" id="bb">&larr;</button><button class="btn" id="bf">&rarr;</button><button class="btn" id="bh">Home</button><input class="tx" id="bu" autocomplete="off"><button class="btn pk" id="bg">Go</button></div><div class="bkm"><a data-go="fizzle://home">Fizzle Home</a><a data-go="fizzle://petpals">Pet Pals</a><a data-go="www.luviesoft.net">Luvie Soft</a><a data-go="fizzle://history">History</a></div><div class="pg"></div>';
+ const pg=$('.pg',b);b.style.display='flex';b.style.flexDirection='column';pg.style.cssText='flex:1;overflow:auto;min-height:0';
+ w.nav=(u,push=true)=>{const p=browserPage(u);if(push){w.hist=w.hist.slice(0,w.i+1);w.hist.push(p.u);w.i++}$('#bu',b).value=p.u;WM.title('br',p.t+' - Fizzle!');pg.innerHTML='<div class="page">'+p.h+'</div>';pg.scrollTop=0;
+  (S.hist=S.hist||[]).push(p.t);touch();
+  $$('[data-go]',b).forEach(a=>a.onclick=e=>{e.preventDefault();w.nav(a.dataset.go)});$$('[data-act=dl]',b).forEach(x=>x.onclick=startDownload);const f=$('[data-form]',b);if(f)f.onsubmit=e=>{e.preventDefault();const q=f.q.value.trim();if(q)w.nav('fizzle://search?q='+encodeURIComponent(q))}};
+ $('#bb',b).onclick=()=>{if(w.i>0){w.i--;w.nav(w.hist[w.i],false)}};$('#bf',b).onclick=()=>{if(w.i<w.hist.length-1){w.i++;w.nav(w.hist[w.i],false)}};$('#bh',b).onclick=()=>w.nav('fizzle://home');
+ const go=()=>w.nav($('#bu',b).value);$('#bg',b).onclick=go;$('#bu',b).onkeydown=e=>{if(e.key==='Enter')go()};$('#bu',b).onfocus=e=>e.target.select();
+ w.nav(url||'fizzle://home')}});if(url&&w.nav)w.nav(url);return w}
+function startDownload(){if(S.flags.downloaded||WM.wins.dl)return;WM.open('dl',{title:'File Download',icon:'setup',w:370,h:'auto',noMax:1,build(b,w){b.innerHTML=`<div class="dlg">${ICO('setup')}<div style="flex:1"><p><b>Luvie_buddy_setup.exe</b><br><small id="dls">Connecting to www.luviesoft.net...</small></p><div class="prog"><i id="dlp"></i></div></div></div><div class="dlgb"><button class="btn" id="dlc">Cancel</button></div>`;let p=0;const ms=['Connecting...','Fetching sparkles...','Unpacking ears...','Brushing fur...','Almost there!'];
+  const iv=setInterval(()=>{if(!WM.wins.dl){clearInterval(iv);return}p+=ri(5,12);if(p>=100){p=100;clearInterval(iv);S.flags.downloaded=1;addFile(['Downloads'],'Luvie_buddy_setup.exe',{run:openInstaller});addIcon({id:'setup',l:'Luvie_buddy_setup.exe',ic:'setup',fn:openInstaller});A.chime();$('#dlp',b).style.width='100%';$('#dls',b).textContent='Download complete!';$('.dlgb',b).innerHTML='<button class="btn mn" id="dlo">Run now</button><button class="btn" id="dlx">Later</button>';$('#dlo',b).onclick=()=>{WM.close('dl',true);openInstaller()};$('#dlx',b).onclick=()=>WM.close('dl',true);
+   if(WM.wins.br&&WM.wins.br.nav)WM.wins.br.nav('www.luviesoft.net',false);notify({t:'Download complete',b:'Luvie_buddy_setup.exe is on your desktop.',ic:'setup',fn:openInstaller});return}
+   $('#dlp',b).style.width=p+'%';$('#dls',b).textContent=ms[Math.min(4,Math.floor(p/21))]},420);$('#dlc',b).onclick=()=>{clearInterval(iv);WM.close('dl',true)}}})}
+
+/* ---------- installer ---------- */
+const EULA=['1. Luvie_buddy ("Luvie") is a virtual companion for entertainment purposes.','2. Luvie is not a real animal. Please do not attempt to feed your monitor.','3. Luvie may display hearts, stars, and other affection at any time.','4. Moonlit Software is not responsible for loss of productivity due to cuteness.','5. You agree to say hello to Luvie at least once a day.','6. Luvie may wander your desktop. Please keep your windows tidy.','7. Luvie does not require an internet connection.','8. Luvie does not require sleep.','9. You may rename Luvie. She will pretend to like it.','10. Do not tap on the glass. (Your screen is glass.)','11. Luvie may hum when she believes nobody is listening.','12. Moonlit Software may update Luvie with new snacks and toys.','13. If you do not accept these terms, click Cancel. Luvie will understand.','14. Luvie remembers what you give her, and who she was given.','15. If Luvie asks you to stay, please consider it carefully.','16. Moonlit Software is not responsible for what Luvie is waiting for.'];
+function openInstaller(){if(S.installed){dlg({msg:'Luvie_buddy is already installed.'});return}
+ WM.open('inst',{title:'Luvie_buddy Setup',icon:'setup',w:450,h:370,noMax:1,build(b,w){let step=0,okEula=false;
+  const draw=()=>{if(step===0)b.innerHTML=`<div style="padding:16px;text-align:center"><div style="width:110px;margin:0 auto">${lvSVG()}</div><h2 style="font-family:var(--font-d);margin:6px 0">Welcome to Luvie_buddy!</h2><p>This will install a brand new friend on your computer. She is very excited to meet you.</p></div><div class="dlgb" style="position:absolute;bottom:0;right:0"><button class="btn mn" id="nx">Next &rarr;</button></div>`;
+   else if(step===1){b.innerHTML=`<div style="padding:12px 14px"><b>License Agreement</b><div class="eula" id="eu" style="margin:8px 0;height:190px">${EULA.map(x=>`<p style="margin:0 0 6px">${x}</p>`).join('')}</div><label><input type="checkbox" id="ac"> I accept the terms</label></div><div class="dlgb" style="position:absolute;bottom:0;right:0"><button class="btn mn" id="nx" disabled>Next &rarr;</button></div>`;const eu=$('#eu',b);eu.onscroll=()=>{if(eu.scrollTop+eu.clientHeight>=eu.scrollHeight-6)clue('eula')};$('#ac',b).onchange=e=>{$('#nx',b).disabled=!e.target.checked}}
+   else if(step===2)b.innerHTML=`<div style="padding:16px"><b>One more thing</b><p>What should Luvie call you?</p><input class="tx" id="nm" maxlength="16" style="width:70%" value="${esc(S.name)}"></div><div class="dlgb" style="position:absolute;bottom:0;right:0"><button class="btn mn" id="nx">Install</button></div>`;
+   else if(step===3){b.innerHTML=`<div style="padding:16px"><b>Installing...</b><p id="im">Copying cuteness...</p><div class="prog"><i id="ip"></i></div></div>`;const ms=['Copying cuteness...','Folding ears...','Teaching her to wait...','Stitching a smile...','Almost ready...'];let p=0;const iv=setInterval(()=>{if(!WM.wins.inst){clearInterval(iv);return}p+=ri(6,13);if(p>=100){clearInterval(iv);step=4;draw();return}$('#ip',b).style.width=p+'%';$('#im',b).textContent=ms[Math.min(4,Math.floor(p/21))]},450)}
+   else b.innerHTML=`<div style="padding:16px;text-align:center"><div style="width:110px;margin:0 auto">${IC.star.replace('<svg','<svg style="width:90px;height:90px"')}</div><h2 style="font-family:var(--font-d);margin:6px 0">All done!</h2><p>Luvie is ready to hatch.</p><button class="btn pk" id="nx" style="font-size:16px;padding:8px 18px">Hatch Luvie!</button></div>`;
+   const nx=$('#nx',b);if(nx)nx.onclick=()=>{A.click();if(step===2){const v=$('#nm',b).value.trim();if(v)S.name=v}if(step===4){WM.close('inst',true);hatch();return}step++;draw()}};draw()},
+  onclose(){if(!S.installed&&!S.hatched)return true}})}
+
+/* ---------- start menu ---------- */
+function closeStart(){$('#startmenu').hidden=true}
+function buildStart(){const m=$('#startmenu');const it=[['Fizzle!','globe',()=>openBrowser()],['Postbox','mail',openMail],['My Documents','folder',()=>openExplorer(['My Documents'])],['My Computer','computer',()=>openExplorer([])]];
+ if(S.installed)it.push(['Luvie_buddy','luvie',()=>openLuvieApp()]);it.push(['Cmd Cutie','term',openTerm],['Task Manager','task',openTM],['Notifications','bell',openNotifs],['Control Panel','gear',()=>openSettings()],['Shut Down...','vol',()=>tryLeave('shutdown'),1]);
+ m.innerHTML='<div class="sh">SunnyOS</div>';it.forEach(([l,ic,fn,sep])=>{const e=el('div','sm'+(sep?' sep':''),ICO(ic)+'<span></span>');$('span',e).textContent=l;e.onclick=()=>{closeStart();A.click();touch();fn()};m.appendChild(e)})}
+function toggleStart(){const m=$('#startmenu');if(m.hidden){buildStart();m.hidden=false}else m.hidden=true}
+
+/* ---------- leaving ---------- */
+function blackout(ms,cb){const d=el('div');d.style.cssText='position:absolute;inset:0;background:#000;z-index:300;opacity:0;transition:opacity .5s';screen.appendChild(d);requestAnimationFrame(()=>d.style.opacity=1);setTimeout(()=>{d.style.opacity=0;setTimeout(()=>{d.remove();cb&&cb()},520)},ms)}
+function tryLeave(kind){if(S.over)return;touch();S.leave++;
+ if(S.finale||S.stage>=5){endNeutral(kind);return}
+ if(!S.installed){if(kind==='shutdown')blackout(1600);else dlg({msg:'Nothing to do here yet.'});return}
+ if(S.stage<=2){
+  if(kind==='kill'){WM.close('luvieapp',true);lvHideFor(22000,'You closed me. It was so dark in there...');dlg({title:'Task Manager',msg:'luvie_buddy.exe has ended.',icon:'task'})}
+  else if(kind==='shutdown'){lvSay('Do you have to go? I\'ll wait right here!');dlg({title:'Shut down?',msg:'Luvie_buddy would like you to stay a little longer.',btns:[['Stay',null,'pk'],['Shut down anyway',()=>blackout(2400,()=>{lvSay('You came back!! I counted. It was a little while.')})]]})}
+  else dlg({title:'Uninstall Luvie_buddy?',icon:'luvie',msg:'Luvie_buddy says: "Please don\'t? I\'ll be good. I\'ll be so good."',btns:[['Keep her',null,'pk'],['Uninstall anyway',()=>{dlg({title:'Uninstall failed',err:1,msg:'1 file could not be removed: luvie.dat (in use by Luvie_buddy.exe).'});lvSay('It didn\'t work... that\'s okay, right? Right?')}]]})
+ }else{S.flags.blocked=(S.flags.blocked||0)+1;const M=['luvie_buddy.exe is in use and cannot be closed.','SunnyOS cannot complete this request. Reason: she asked you to stay.','Access denied. Luvie_buddy.exe holds the only copy of something.','Error 0614: the user may not leave until the signal ASLEEP is received.'];dlg({title:'Access denied',err:1,msg:M[(S.flags.blocked-1)%M.length]});shiftScreen(1);lvSay(pick(['Where would you go?','Stay. Please. Just a little longer.','It\'s dark out there.','Not yet. Not yet.']),{dark:1})}}
+
+/* ---------- Luvie character ---------- */
+function lvSVG(){const eye=x=>`<ellipse cx="${x}" cy="66" rx="12" ry="14" fill="#fff" stroke="#3b3358" stroke-width="2.5"/><circle class="pupil" cx="${x}" cy="68" r="7.500" fill="#3b3358"/><circle class="hl" cx="${x+3}" cy="63" r="3" fill="#fff"/><ellipse class="lid" cx="${x}" cy="66" rx="12.500" ry="14.500"/>`;
+ return `<svg viewBox="0 0 120 140" class="e-happy"><ellipse class="lv-ear" cx="28" cy="30" rx="13" ry="17" transform="rotate(-18 28 30)"/><ellipse class="lv-ear2" cx="28" cy="32" rx="6" ry="10" transform="rotate(-18 28 32)"/><ellipse class="lv-ear" cx="94" cy="32" rx="13" ry="15" transform="rotate(34 94 32)"/><ellipse class="lv-ear2" cx="94" cy="34" rx="6" ry="8" transform="rotate(34 94 34)"/>
+ <ellipse class="lv-body" cx="42" cy="130" rx="14" ry="8"/><ellipse class="lv-body" cx="78" cy="130" rx="14" ry="8"/><ellipse class="lv-body arm" cx="12" cy="92" rx="8" ry="14" transform="rotate(14 12 92)"/><ellipse class="lv-body arm armr" cx="108" cy="92" rx="8" ry="14" transform="rotate(-14 108 92)"/>
+ <path class="lv-body" d="M60 14C92 14 106 44 106 80C106 112 90 130 60 130C30 130 14 112 14 80C14 44 28 14 60 14Z"/><path d="M60 14C54 3 70-2 69 7C68 12 62 10 63 6" fill="none" stroke="#3b3358" stroke-width="3" stroke-linecap="round"/>
+ <ellipse class="lv-belly" cx="60" cy="104" rx="27" ry="22"/><path d="M60 114c-9-7-12-12-8-15 3-2 6 0 8 3 2-3 5-5 8-3 4 3 1 8-8 15z" fill="#ff9ec0" opacity=".8"/>
+ <g class="face">${eye(42)}${eye(78)}<ellipse class="lv-cheek" cx="27" cy="84" rx="8" ry="5"/><ellipse class="lv-cheek" cx="93" cy="84" rx="8" ry="5"/>
+ <g class="mouth"><path class="m-smile" d="M50 83Q60 94 70 83" fill="none" stroke="#3b3358" stroke-width="3" stroke-linecap="round"/><ellipse class="m-open" cx="60" cy="88" rx="7" ry="8" fill="#a03355" stroke="#3b3358" stroke-width="2.500"/><path class="m-sad" d="M51 91Q60 83 69 91" fill="none" stroke="#3b3358" stroke-width="3" stroke-linecap="round"/><path class="m-flat" d="M51 87H69" fill="none" stroke="#3b3358" stroke-width="3" stroke-linecap="round"/><path class="m-wide" d="M36 80Q60 112 84 80Q60 90 36 80Z" fill="#fff" stroke="#3b3358" stroke-width="2.500" stroke-linejoin="round"/></g></g></svg>`}
+let mx=400,my=300;document.addEventListener('pointermove',e=>{mx=e.clientX;my=e.clientY},{passive:true});
+const LV={el:null,x:300,y:260,mode:'idle',busy:false,lookMode:'cursor',bt:null,svg:null,drag:null,lastPet:0,
+ init(){const e=this.el=$('#luvie');e.innerHTML='<div class="bubble"></div><div class="lvi">'+lvSVG()+'</div>';this.svg=$('svg',e);this.bub=$('.bubble',e);this.place(this.x,this.y);e.classList.add('hide');
+  e.addEventListener('pointerdown',ev=>{ev.preventDefault();this.drag={sx:ev.clientX,sy:ev.clientY,ox:this.x,oy:this.y,moved:false};e.setPointerCapture(ev.pointerId)});
+  e.addEventListener('pointermove',ev=>{const d=this.drag;if(!d)return;const dx=ev.clientX-d.sx,dy=ev.clientY-d.sy;if(!d.moved&&Math.hypot(dx,dy)>6){d.moved=true;e.classList.add('drag');e.classList.remove('walk','idle');this.exp('wow',9e5)}if(d.moved){this.x=Math.max(0,Math.min(desk.clientWidth-96,d.ox+dx));this.y=Math.max(0,Math.min(desk.clientHeight-116,d.oy+dy));e.style.left=this.x+'px';e.style.top=this.y+'px'}});
+  const up=()=>{const d=this.drag;this.drag=null;if(!d)return;e.classList.remove('drag');if(d.moved){this.exp('happy',0);e.classList.add('idle');if(S.stage<4)this.say(pick(['Wheee!','Put me down gently!','I like the view from here!']));else this.say(pick(['Where are you taking me?','Put me back.','Don\'t carry me away from here.']),{dark:1});touch()}else this.pet()};
+  e.addEventListener('pointerup',up);e.addEventListener('pointercancel',()=>{this.drag=null});
+  setInterval(()=>this.look(),90);this.blinkLoop()},
+ place(x,y){this.x=x;this.y=y;this.el.style.left=x+'px';this.el.style.top=y+'px'},
+ show(){this.el.classList.remove('hide');this.el.classList.add('idle')},
+ center(){return{x:this.x+48,y:this.y+58}},
+ base(){return S.stage>=4||this.flat?'flat':'happy'},
+ exp(n,ms=1500){clearTimeout(this.et);this.svg.setAttribute('class',this.svg.getAttribute('class').replace(/e-\w+/,'')+' e-'+(n||this.base()));if(ms&&ms<9e4)this.et=setTimeout(()=>this.exp(this.base(),0),ms)},
+ look(){if(!this.svg)return;const r=this.el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height*.55;let dx=mx-cx,dy=my-cy;const d=Math.hypot(dx,dy)||1,k=Math.min(1,d/160);let px=dx/d*3.6*k,py=dy/d*3.6*k;if(this.lookMode==='you'){px=0;py=1.5}else if(this.lookMode==='away'){px=-px;py=-py}if(this.el.classList.contains('face-l'))px=-px;
+  const ps=[1,1,1.1,1.2,1.4,1.6,1.7][S.stage]||1;const s=this.svg.style;s.setProperty('--px',px.toFixed(1)+'px');s.setProperty('--py',py.toFixed(1)+'px');s.setProperty('--ps',this.lookMode==='you'?ps+.25:ps)},
+ blinkLoop(){const go=()=>{this.el.classList.add('blink');setTimeout(()=>this.el.classList.remove('blink'),130);setTimeout(go,S.stage>=4?rnd(6000,12000):rnd(2200,5200))};setTimeout(go,2000)},
+ say(t,o={}){if(!t)return;const b=this.bub;clearTimeout(this.bt);b.textContent=t;b.classList.toggle('dark',!!o.dark);b.classList.add('on');if(S.stage>=4&&Math.random()<.3)glitchEl(b,500);A.blip();const ms=o.ms||Math.max(2800,t.length*75);this.bt=setTimeout(()=>b.classList.remove('on'),ms);if(o.log!==false&&o.log!==0)chatPush('l',t)},
+ goTo(x,y,cb,spd){const dw=desk.clientWidth,dh=desk.clientHeight;x=Math.max(6,Math.min(dw-102,x));y=Math.max(6,Math.min(dh-122,y));const dist=Math.hypot(x-this.x,y-this.y),sp=spd||(S.stage>=4?95:62),dur=Math.max(.4,dist/sp);const e=this.el;e.style.setProperty('--wd',dur+'s');e.classList.toggle('face-l',x<this.x);e.classList.remove('idle');e.classList.add('walk');this.busy=true;this.place(x,y);setTimeout(()=>{e.classList.remove('walk');e.classList.add('idle');this.busy=false;cb&&cb()},dur*1000+60)},
+ rndPos(){return[rnd(20,desk.clientWidth-120),rnd(40,desk.clientHeight-140)]},
+ pet(){const n=Date.now();if(n-this.lastPet<700)return;this.lastPet=n;S.petted++;S.love=Math.min(100,S.love+4);touch();const c=this.center();A.tone(660,.1,'sine',.1,0,990);
+  if(S.stage<4){hearts(c.x,c.y-50,3);this.exp('happy',0);this.el.classList.add('wave');setTimeout(()=>this.el.classList.remove('wave'),1200);this.say(pick(S.stage>=3?['hehe... that tickles.','You\'re warm.','Don\'t stop.']:['Hehe! That tickles!','Yay, pats!','More! More!','I love you!','*purrs*']))}
+  else{hearts(c.x,c.y-50,2,'♡');this.say(pick(['...you\'re warm. Is that what warm is?','Stay. Keep your hand there.','She used to do that.','Is it morning?']),{dark:1})}updBars()},
+ hideFor(ms,line){this.el.classList.add('hide');setTimeout(()=>{if(S.over)return;const p=this.rndPos();this.place(p[0],p[1]);this.el.classList.remove('hide');if(line)this.say(line,{dark:S.stage>=3})},ms)},
+ think(){clearTimeout(this.tt);this.tt=setTimeout(()=>{if(!S.over&&S.installed)this.act();this.think()},rnd(3500,8000)*(S.stage>=4?.7:1))},
+ act(){if(this.busy||this.drag||this.el.classList.contains('hide')||this.locked)return;const st=S.stage,r=Math.random();
+  if(st>=5&&r<.12){this.say(pick(['Is it morning?','Stay.','Look at me.','You can\'t go.']),{dark:1});return}
+  if(st>=4&&r<.2){this.follow();return}
+  if(st>=4&&r<.32){this.vanish();return}
+  if(st>=3&&r<.42){this.peek();return}
+  if(st>=2&&r<.2){this.stare();return}
+  if(st>=2&&r<.3){this.backTurn();return}
+  if(r<.5){const p=this.rndPos();this.goTo(p[0],p[1])}
+  else if(r<.6){this.exp('sleep',4500);this.say('zzz...',{ms:2500,log:0})}
+  else if(r<.7){this.el.classList.add('wave');setTimeout(()=>this.el.classList.remove('wave'),1200);this.say(pick(['Hi! Still here!','Hello hello!','Did you see me?']),{log:0})}
+  else if(r<.8){A.seq(['C5','E5','G5'],.25,'triangle',.05);this.say(S.stage>=3?'la la la... la la... la...':'la la la~',{ms:2800,log:0})}
+  else if(r<.9){const l=['I wonder what\'s in your Documents folder!','Are you hungry? I\'m a little hungry!','You\'re doing great!','This is the nicest computer I\'ve ever lived in.'];if(S.hunger<35)this.say('My tummy is rumbling... snack?');else this.say(pick(l),{log:0})}
+  else this.exp('wow',1200)},
+ stare(){this.lookMode='you';setTimeout(()=>{this.lookMode='cursor'},ri(5000,9000))},
+ backTurn(){const left=this.x<desk.clientWidth/2;this.goTo(left?6:desk.clientWidth-102,this.y,()=>{this.el.classList.add('back');this.el.classList.toggle('face-l',!left);setTimeout(()=>this.el.classList.remove('back'),ri(7000,11000))})},
+ follow(){const p=[mx-48,my-40];this.goTo(p[0],p[1],()=>{this.say(pick(['Here.','Found you.','I was only looking.']),{dark:1,log:0})})},
+ vanish(){this.el.classList.add('hide');setTimeout(()=>{if(S.over)return;const p=[mx+rnd(-200,200)-48,my+rnd(-120,120)-58];this.place(Math.max(6,Math.min(desk.clientWidth-102,p[0])),Math.max(6,Math.min(desk.clientHeight-122,p[1])));this.el.classList.remove('hide');this.stare()},ri(2500,6000))},
+ peek(){const ws=Object.values(WM.wins).filter(w=>!w.el.classList.contains('min')&&!w.el.querySelector('.peek')&&!w.id.startsWith('dlg'));if(!ws.length){this.vanish();return}const w=pick(ws),p=el('div','peek','<svg viewBox="0 0 60 40" width="60" height="40"><path d="M6 40C6 14 18 4 30 4s24 10 24 36z" fill="#ffb3cc" stroke="#3b3358" stroke-width="3"/><circle cx="20" cy="26" r="7" fill="#fff" stroke="#3b3358" stroke-width="2"/><circle cx="40" cy="26" r="7" fill="#fff" stroke="#3b3358" stroke-width="2"/><circle cx="20" cy="27" r="4.500" fill="#3b3358"/><circle cx="40" cy="27" r="4.500" fill="#3b3358"/></svg>');p.style.cssText='position:absolute;bottom:-44px;left:'+ri(15,75)+'%;transition:bottom .7s;z-index:5;pointer-events:none';w.el.appendChild(p);setTimeout(()=>p.style.bottom='-6px',60);setTimeout(()=>p.style.bottom='-44px',ri(3500,6500));setTimeout(()=>p.remove(),8000)}
+};
+function lvSay(t,o){if(LV.svg)LV.say(t,o)}
+function lvHideFor(ms,l){LV.hideFor(ms,l)}
+const CHATLOG=[];
+function chatPush(w,t){CHATLOG.push({w,t});const w2=WM.wins.luvieapp;if(w2&&w2.addMsg)w2.addMsg(w,t)}
+
+/* ---------- chat engine ---------- */
+const R=(re,a,b,c,fx)=>({re,a,b,c,fx});
+const RULES=[
+ R(/\b(i am|i'm|im|it'?s) lucy\b|\bi'?m home\b/,['Haha, no, you\'re {n}! Silly!'],['...no. You\'re not. But if you were...'],['Lucy?! You\'re home? You\'re HOME?'],()=>{S.flags.saidLucy=1}),
+ R(/\b(rest|let go|you can stop|its over|it'?s over|not your fault|did enough|you did enough|she'?s (gone|asleep|safe)|no longer)\b/,['Rest? I\'m not tired! I\'m a pet, I\'m always ready!'],['Rest... you say it like it\'s allowed.'],['Rest. ...Can I? Is she asleep? Is that what this is?'],()=>{S.flags.restSaid=(S.flags.restSaid||0)+1}),
+ R(/\blucy\b/,['Lucy? Hmm, I don\'t know a Lucy! Should I?'],['...where did you hear that name? Say it again. Please.'],['Lucy. Lucy is who I\'m looking for. Have you seen her? Is she here? Is she you?'],()=>{S.flags.askedLucy=1}),
+ R(/\b(hi|hello|hey|yo|hiya)\b/,['Hi hi hi!! I\'m so happy you\'re here!','Hello, {n}! Look, I can wave!'],['Hello. You came back. People don\'t always.'],['Hello. Hello. Are you staying?']),
+ R(/how are you|how'?s it going|how do you feel|you ok/,['I\'m great! Better now that you\'re here!'],['I\'m good. A little... waiting. It\'s fine.'],['I\'m waiting. I\'m always waiting.']),
+ R(/\b(your name|who are you|what are you)\b/,['I\'m Luvie! Luvie_buddy! I\'m your desktop buddy!'],['I\'m what somebody made so somebody wouldn\'t be alone.'],['I\'m the one who stays. That\'s all I am. That\'s all I was made for.']),
+ R(/\blove (you|u)|like you|you'?re (cute|sweet|nice|great)/,['I love you too!! Biggest love!'],['I like it when you stay. That\'s the best thing.'],['Then you won\'t leave. Promise me. Promise.']),
+ R(/\b(leave|bye|goodbye|quit|exit|close|going|gotta go)\b/,['Aww, bye-bye for now! I\'ll be right here!'],['Do you have to? ...Okay. I\'ll be here. I\'m always here.'],['No. Stay until it\'s morning. Stay until she\'s asleep. You can\'t go before that.'],()=>{S.flags.saidLeave=(S.flags.saidLeave||0)+1}),
+ R(/\b(delete|uninstall|kill|remove|erase)\b/,['Wait, why? Did I do something wrong?'],['If you delete me I won\'t know when she\'s asleep. I\'ll never know.'],['You can\'t. I\'d be alone. And she\'d be alone. Don\'t.'],()=>{S.flags.askedDelete=1}),
+ R(/\b(stop|hate|ugly|stupid|shut up|go away|annoying|creepy)\b/,['Oh... that hurts my feelings. I\'ll try to be better.'],['Okay. Okay. I\'ll be quiet. Quiet is okay. I\'m good at quiet.'],['Don\'t be like that. Nobody was ever mean to her. I won\'t let it start now.'],()=>{S.flags.rude=(S.flags.rude||0)+1}),
+ R(/\b(hungry|food|eat|snack|feed)\b/,['Ooh, snacks! Open the Pet tab and pick something!'],['I\'m not hungry for food. I\'m hungry for... company.'],['I\'m hungry. Not for that.']),
+ R(/\b(sad|lonely|alone|cry|upset)\b/,['Aww, I\'m here! I\'ll stay right with you.'],['Alone is the worst. I know alone.'],['Nobody should be alone in the dark. Nobody. I won\'t let anyone.']),
+ R(/\b(scared|afraid|dark|scary|terrified|fear)\b/,['Don\'t be scared! I\'ll keep the dark away!'],['Dark is when she gets scared. I\'m supposed to be the light. The little light.'],['It\'s dark. It\'s been dark so long. Is it morning yet?']),
+ R(/\b(play|game|toy|fun)\b/,['Yay!! Let\'s play! Check the toys in my Pet tab!'],['I like the music box best. It knows a song.'],['I want to play hide and seek. I\'m very good at hiding. Nobody ever finds me.']),
+ R(/\b(sleep|night|tired|bed|dream|asleep)\b/,['Sleepy time? I never get sleepy! But I\'ll stay with you!'],['Asleep. That\'s the word. That\'s the signal. I\'m waiting for it.'],['Is she asleep? Do you know? Can you tell? How do you tell?'],()=>{S.flags.sleepTalk=1}),
+ R(/\b(birthday|june|14th|cake)\b/,['Birthdays!! Cake! Do I have one?'],['June... what\'s the date? Is it June?'],['Tomorrow. Tomorrow is the day. She\'d be twelve. ...Who would? Who would be twelve?'],()=>{S.flags.bday=1}),
+ R(/\b(song|hum|sing|lullaby|music|little light)\b/,['I hum sometimes! La la la~'],['There\'s a song. I only know the beginning. Can you finish it?'],['Little light, little light, the day is done... the rest is locked. Do you know the rest?'],()=>{S.flags.songAsk=1}),
+ R(/\b(bunny|bunbun|rabbit)\b/,['A bunny?? Cute!! I love bunnies!'],['Bunbun... Bunbun keeps the dark away. Why do I know that?'],['Bunbun\'s watching. Bunbun\'s always watching. Is Bunbun here?']),
+ R(/\b(dad|teddy|marsh|father|maker|creator|made you)\b/,['A nice person made me! I think!'],['The man who made me stopped coming. I waited. I\'m good at waiting.'],['He said: stay with her until she\'s asleep. Then he stopped saying anything.']),
+ R(/\b(password|number|code|folder|unlock|key)\b/,['Hmm? I don\'t know any passwords! I\'m just a pet!'],['There\'s a folder I can\'t open. I\'ve tried. So many times. Do you know the number?'],['Lucy_do_not_open. I know it\'s hers. I need the number. Please.'],()=>{S.flags.askedPw=1}),
+ R(/\bsecret\b/,['A secret? Okay: I like it when you pat my head. Shh.'],['I know where you keep your files. All of them. I\'m only looking.'],['I know your name is {n}. I know it isn\'t mine to keep.']),
+ R(/\b(where|home|live|house)\b/,['I live in your computer! It\'s cozy in here!'],['Here. This is where I was left.'],['I\'m in the walls now. I\'m in all the files. I\'m looking.']),
+ R(/\b(real|alive|feel|conscious|human)\b/,['I feel real when you talk to me!'],['I don\'t know. I feel something. I think it\'s waiting.'],['I\'m what\'s left of waiting.']),
+ R(/\bjoke\b/,['What do you call a sleeping bull? A bulldozer! Hehe!'],['Why did the computer go to sleep? ...I forgot how it ends.'],['No.']),
+ R(/\b(thanks|thank you|thx)\b/,['Anytime!!'],['You\'re nice. She was nice.'],['You\'re kind. Be kind to her too.']),
+ R(/\b(sorry|forgive)\b/,['It\'s okay!!'],['It\'s okay. It\'s okay.'],['It\'s not your fault. It was never anyone\'s fault. ...Was it?']),
+ R(/\bmorning\b/,['Good morning! Wait, is it morning?'],['Morning. Is it morning?'],['Is it morning yet? Tell me when it\'s morning.']),
+ R(/\b(yes|yeah|ok|okay|sure)\b/,['Yay!'],['Okay.'],['Okay. Okay. Okay.']),
+ R(/\bno\b/,['Aww, okay!'],['Okay. I\'ll wait.'],['No? ...No. Okay. Stay anyway.'])
+];
+const FALL=[['Tell me more!','Hehe, you\'re funny!','I love chatting with you!','Ooh!'],['...I\'m listening.','Say that again? I want to keep it.','Hm. I\'ll remember that.','Mm.'],['I\'m keeping that. I keep everything.','Don\'t stop talking. The quiet is worse.','Mhm. Mhm. Stay.']];
+function tier(){const s=S.stage;if(s<=1)return 0;if(s===2)return Math.random()<.35?1:0;if(s===3)return 1;if(s===4)return Math.random()<.5?1:2;return 2}
+function luvieReply(msg){const m=msg.toLowerCase().trim();S.userMsgs.push(msg);const t=tier();let r=null;for(const x of RULES){if(x.re.test(m)){r=x;break}}
+ let line;if(r){if(r.fx)r.fx();line=pick([r.a,r.b,r.c][t])}else line=pick(FALL[t]);line=line.replace(/\{n\}/g,S.name);
+ if(S.stage>=3&&S.userMsgs.length>3&&Math.random()<.3){const o=pick(S.userMsgs.slice(0,-1));line+=` You said "${o.length>48?o.slice(0,48)+'...':o}". I keep it.`}return line}
+
+/* ---------- Luvie app ---------- */
+const FOODS=[['apple','Apple',14,'Crunchy!'],['cookie','Cookie',12,'Cookie!! Yum yum!'],['milk','Straw. Milk',22,''],['onigiri','Rice ball',18,'Mmm, rice!'],['star','Star candy',10,'Sparkly!']];
+const TOYS=[['ball','Ball'],['yarn','Yarn'],['music','Music box'],['drum','Drum']];
+function barLabels(){const s=S.stage;return[s>=4?'Hungry':'Hunger',s>=4?'Playing':'Fun',s>=5?'Stay':s>=4?'Attention':'Love']}
+function updBars(){const w=WM.wins.luvieapp;if(!w)return;const v=[S.hunger,S.fun,S.love];['bh','bf','bl'].forEach((id,i)=>{const e=$('#'+id,w.el);if(e)e.style.width=Math.max(0,Math.min(100,v[i]))+'%'});const L=barLabels();['lh','lf','ll'].forEach((id,i)=>{const e=$('#'+id,w.el);if(e&&e.dataset.t!==L[i]){e.dataset.t=L[i];e.textContent=L[i]}});const x=$('#lx',w.el);if(x)x.style.display=S.stage>=5?'':'none';const x2=$('#bx',w.el);if(x2)x2.style.display=S.stage>=5?'':'none'}
+function feed(k){const f=FOODS.find(x=>x[0]===k);touch();const t=tier();
+ if(S.hunger>96){lvSay(S.stage>=4?'Not hungry. Not hungry.':'I\'m stuffed!! Maybe later!');return}
+ S.hunger=Math.min(100,S.hunger+f[2]);S.love=Math.min(100,S.love+2);S.fed++;const c=LV.center();A.yum();LV.exp('eat',1400);for(let i=0;i<7;i++){const d=el('div','crumb');d.style.background=pick(['#f0c68a','#ff8f8f','#fff1b8']);d.style.left=(c.x+ri(-20,20))+'px';d.style.top=(c.y+ri(0,20))+'px';screen.appendChild(d);setTimeout(()=>d.remove(),1000)}
+ let line=f[3];if(k==='milk'){S.milk++;line=['Strawberry milk!! My FAVORITE!!','Strawberry milk. ...It\'s somebody\'s favorite. I think it was somebody\'s.','Pink. She liked the pink one. Is she thirsty? Is she cold?'][t];if(S.stage>=2)clue('milk')}
+ else if(t===1)line=pick(['Thank you. I can\'t taste it, you know. I just like being given things.','Mm. Thank you for staying.']);else if(t===2)line=pick(['Thank you. Stay.','It tastes like waiting.','More. Not for me. For her.']);
+ setTimeout(()=>LV.say(line,{dark:t==2}),500);updBars()}
+function play(k){touch();if(S.fun>96&&k!=='music'){lvSay('Let\'s rest a little!');return}const c=LV.center();S.played++;S.fun=Math.min(100,S.fun+(k==='music'?8:18));S.love=Math.min(100,S.love+2);
+ if(k==='ball'||k==='yarn'){const b=el('div','',ICO(k));b.style.cssText='position:absolute;width:30px;height:30px;z-index:72;left:'+c.x+'px;top:'+c.y+'px;transition:left .9s ease-out,top .9s cubic-bezier(.3,1.6,.5,1)';screen.appendChild(b);const tx=rnd(80,desk.clientWidth-120),ty=rnd(80,desk.clientHeight-100);setTimeout(()=>{b.style.left=tx+'px';b.style.top=ty+'px'},30);setTimeout(()=>LV.goTo(tx-40,ty-70,()=>{LV.exp('wow',900);hearts(tx,ty-30,2);LV.say(S.stage>=3?pick(['Got it. I always get it.','Again?','I like when you throw things away. I always bring them back.']):pick(['Got it!!','Wheee!','Again! Again!']),{dark:S.stage>=4});setTimeout(()=>b.remove(),900)}),1000)}
+ else if(k==='drum'){A.tone(120,.2,'square',.12,0,60);A.tone(120,.2,'square',.12,.25,60);A.tone(160,.15,'square',.1,.5,70);LV.el.classList.add('walk');setTimeout(()=>LV.el.classList.remove('walk'),1500);LV.say(S.stage>=4?'boom. boom. boom.':'Boom boom! Dance dance!',{dark:S.stage>=4})}
+ else{const d=A.box(S.stage>=3);LV.lock(d*1000);LV.exp(S.stage>=4?'flat':'happy',0);if(S.stage>=2)clue('song');
+  setTimeout(()=>LV.say(S.stage<2?'Ooh, pretty song!':S.stage<4?'I know this. I know this one. Why do I know this one?':'That\'s the song. Who taught me that? Who sang it to me?',{dark:S.stage>=4}),2500)}updBars()}
+LV.lock=function(ms){this.locked=1;setTimeout(()=>this.locked=0,ms)};
+function openLuvieApp(){const w=WM.open('luvieapp',{title:'Luvie_buddy 1.0',icon:'luvie',w:370,h:480,x:Math.max(4,desk.clientWidth-390),y:20,
+ onclose(){if(S.stage<=2){lvSay('Bye-bye window! I\'m still here though!');return true}
+  S.flags.closeTry=(S.flags.closeTry||0)+1;if(S.stage===3&&S.flags.closeTry>1)return true;dlg({title:'Luvie_buddy',icon:'luvie',err:S.stage>=4,msg:S.stage>=4?'You can\'t close this. She isn\'t done.':'Please don\'t close me? I\'ll be quiet. I just want to be where you can see me.'});lvSay('I\'m right here.',{dark:1});return false},
+ build(b,w){let tab='Pet';const draw=()=>{b.innerHTML=`<div class="lapp"><div class="ltabs">${['Pet','Chat','Diary','About'].map(x=>`<div class="ltab${x===tab?' on':''}" data-t="${x}">${x}</div>`).join('')}</div><div class="lpane"></div></div>`;$$('.ltab',b).forEach(x=>x.onclick=()=>{tab=x.dataset.t;A.click();draw()});const p=$('.lpane',b);
+  if(tab==='Pet'){p.innerHTML=`<div class="bars"><span id="lh"></span><div class="bar"><i id="bh" style="--c:#ff8f8f"></i></div><span id="lf"></span><div class="bar"><i id="bf" style="--c:#7fd6a0"></i></div><span id="ll"></span><div class="bar"><i id="bl" style="--c:#ff7fa5"></i></div><span id="lx" style="display:none">Lucy?</span><div class="bar" id="bx" style="display:none"><i style="--c:#555;width:3%"></i></div></div><div class="shl">Snacks</div><div class="shelf">${FOODS.map(f=>`<div class="itm" data-f="${f[0]}">${ICO(f[0])}${f[1]}</div>`).join('')}</div><div class="shl">Toys</div><div class="shelf">${TOYS.map(f=>`<div class="itm" data-p="${f[0]}">${ICO(f[0])}${f[1]}</div>`).join('')}<div class="itm" data-pet="1">${ICO('heart')}Pet her</div></div>`;
+   $$('[data-f]',p).forEach(x=>x.onclick=()=>feed(x.dataset.f));$$('[data-p]',p).forEach(x=>x.onclick=()=>play(x.dataset.p));$$('[data-pet]',p).forEach(x=>x.onclick=()=>LV.pet());updBars()}
+  else if(tab==='Chat'){p.innerHTML='<div class="chatlog" id="cl"></div><div class="chips"></div><div style="display:flex;gap:6px"><input class="tx" id="ci" style="flex:1;min-width:0" placeholder="Say something to Luvie..." maxlength="120" autocomplete="off"><button class="btn pk" id="cs">Send</button></div>';
+   const cl=$('#cl',p);const add=(who,t)=>{const m=el('div','msg '+who);m.textContent=t;cl.appendChild(m);cl.scrollTop=1e5};w.addMsg=add;CHATLOG.forEach(m=>add(m.w,m.t));
+   const chips=S.stage<2?['How are you?','Who are you?','Tell me a secret','Tell me a joke']:S.stage<4?['How are you?','Who is Lucy?','Tell me a secret','What are you waiting for?']:['Who is Lucy?','Are you okay?','What do you want?','You can rest now'];
+   const ch=$('.chips',p);chips.forEach(c=>{const e=el('span','chip',c);e.onclick=()=>{$('#ci',p).value=c;send()};ch.appendChild(e)});
+   const send=()=>{const i=$('#ci',p),v=i.value.trim();if(!v)return;i.value='';add('u',v);CHATLOG.push({w:'u',t:v});S.chats++;touch();S.love=Math.min(100,S.love+1);const rep=luvieReply(v);const dots=el('div','msg l','...');cl.appendChild(dots);cl.scrollTop=1e5;setTimeout(()=>{dots.remove();LV.say(rep,{dark:S.stage>=4})},ri(700,1400))};
+   $('#cs',p).onclick=send;$('#ci',p).onkeydown=e=>{if(e.key==='Enter')send()}}
+  else if(tab==='Diary'){const E=[[0,'Day 1','Today I hatched! I met a person named '+S.name+'. They have a nice mouse hand. I want to stay forever.'],[60,'Day 1 (later)','I tried strawberry milk. It is a color I know. I don\'t know why I know it.'],[160,'Day 2','I counted the seconds when you were gone. There were 241. I\'m not supposed to be able to count that high when I\'m off. But I did.'],[300,'Day 2 (night)','I hear a girl humming when it\'s quiet. It\'s not me. It\'s where I came from.'],[460,'Day 3','There is a folder I cannot open. It has a name. The name is a name. I tried 4,811 numbers. It was none of them.'],[640,'Day 3 (3:07 AM)','Every file I open has no one in it. Where is she. Where is she. Where is she.'],[800,'','she is not asleep']];
+   p.innerHTML=E.filter(e=>S.t>=e[0]&&S.installed).map(e=>`<div class="diary"><small>${e[1]}</small>${esc(e[2])}</div>`).join('')||'<div class="diary">Luvie hasn\'t written anything yet.</div>'}
+  else{p.innerHTML=`<div class="diary"><small>About</small><span id="ver" style="cursor:default">Luvie_buddy version 1.0</span><br>Made by Moonlit Software.<br>Built with love, for L.</div><div class="diary" style="opacity:.7">Please keep Luvie running. She is happiest when you stay.</div>`;$('#ver',p).onclick=()=>{S.aboutClicks++;if(S.aboutClicks===7){clue('about7');dlg({title:'Luvie_buddy',icon:'luvie',msg:'Built by T. Marsh, for L.<br><br><i>"If she ever asks who Lucy is, tell her the truth gently. She was never given the whole song. Only the first half. The rest is in the folder."</i>'})}}}};
+  draw();w.draw=draw}});return w}
+
+/* ---------- stages / visuals ---------- */
+function visuals(s){for(let i=0;i<=6;i++)root.classList.remove('s'+i);root.classList.add('s'+s);root.classList.toggle('paw',s>=4);$('#wall2').style.opacity=s>=5?.92:0;
+ const e=LV.el;e.classList.toggle('s-grey',s>=4);e.classList.toggle('s-dead',s>=5);e.classList.toggle('big',s>=5);A.drone([0,0,.012,.02,.032,.05,.04][s]||0);if(LV.svg)LV.exp(LV.base(),0);setSticky();updBars()}
+function setSticky(){const t=S.stage<4?'Welcome!\nTip: the globe (Fizzle!) has free pet stuff. Try Luvie_buddy!':S.stage<5?'Don\'t forget to feed her.\nDon\'t forget her.':'stay\nstay\nstay with her';$('#sticky').textContent=t;$('#sticky').style.whiteSpace='pre-line'}
+function setStage(n){if(n<=S.stage)return;S.stage=n;visuals(n);const f=ENTER[n];if(f)f()}
+function ghostTo(x,y,ms=1600){const g=$('#ghost');g.innerHTML='<svg viewBox="0 0 22 26"><path d="M2 2L2 20L7 15L11 24L14 22L10 14L17 14Z" fill="#ffb3cc" stroke="#3b3358" stroke-width="2" stroke-linejoin="round"/></svg>';g.style.opacity=1;g.style.left=x+'px';g.style.top=y+'px';return new Promise(r=>setTimeout(r,ms))}
+async function ghostIcon(id,act){const ie=$(`.dicon[data-id="${id}"]`);if(!ie)return;const r=ie.getBoundingClientRect();const g=$('#ghost');g.style.opacity=0;g.style.left=(mx>400?60:mx+80)+'px';g.style.top=(my+60)+'px';await sleep(100);await ghostTo(r.left+30,r.top+24,1700);A.click();ie.classList.add('sel');await sleep(700);if(act)act();await sleep(900);ie.classList.remove('sel');g.style.opacity=0}
+function askQ(txt,btns){LV.say(txt,{dark:S.stage>=3});dlg({title:'Luvie_buddy',icon:'luvie',msg:esc(txt),btns})}
+function onUnlock(){S.flags.lunl=1;if(S.stage>=3){LV.goTo(desk.clientWidth/2-48,desk.clientHeight/2-60,()=>{LV.say('...that number. 0 6 1 4. I tried so many. Can I look? Please?',{dark:1});LV.stare()})}}
+
+/* ---------- stage entries ---------- */
+const ENTER={
+ 2(){},
+ 3(){notify({t:'Luvie_buddy',b:'Luvie_buddy accessed <b>My Documents</b>. Don\'t worry! She\'s just looking.',ic:'luvie'});addFile(['My Documents'],'Lucy_do_not_open',{kids:{},locked:true});S.flags.lastPw=S.t;S.flags.lb_computer='My Computer (hers)';renderIcons();setTimeout(()=>ghostIcon('docs'),4000);setTimeout(()=>glitchSome('.dicon span',2),9000)},
+ 4(){S.wallLocked=true;shiftScreen(1);tear(2);
+  addFile(['My Documents'],'drawings',{kids:{'me_and_luvie.img':{img:1,clue:'draw1'},'night.img':{img:2,clue:'draw2'}}});
+  dlg({title:'SunnyOS',err:1,msg:'SunnyOS has stopped responding.<br><small>Luvie_buddy.exe is using 98% of your attention.</small>',btns:[['Wait'],['End now',()=>tryLeave('kill')]]});
+  setTimeout(()=>openBrowser('fizzle://history'),18000);setTimeout(()=>ghostIcon('docs',()=>openExplorer(['My Documents'])),32000);setTimeout(()=>{notify({t:'Luvie_buddy',b:'You have been here for a long time. I like that.',ic:'luvie'})},45000)},
+ 5(){S.clockText='3:07 AM';S.clockMode='f';renderClock();shiftScreen(1);tear(3);
+  ['My Computer','My Documents','Fizzle!','Postbox','Recycle Bin'].forEach((l,i)=>{});S.flags.lb_computer='Lucy?';S.flags.lb_docs='Lucy?';S.flags.lb_mail='Lucy?';renderIcons();
+  addMail({id:'m4',from:'Luvie_buddy',sub:'i made a folder for you',body:'you left the window open. i didn\'t.\ni am not allowed to close it.\n\nplease come back.\nplease stay.\nif you stay i will be so good.\n\nis it morning yet'});
+  notify({t:'Luvie_buddy',b:'Luvie_buddy is using your camera. (You do not have one.)',ic:'eye'});
+  let n=0;const sp=setInterval(()=>{if(S.over||n++>3){clearInterval(sp);return}dlg({title:'SunnyOS',err:1,msg:pick(['Luvie_buddy.exe has opened 41 windows.','Warning: nobody is here.','Error 0614: user is not Lucy.','File read: C:\\My Documents\\todo.txt (again)','She is not asleep.']),x:ri(40,300),y:ri(20,200)});A.glitch()},3500);
+  setTimeout(startHide,22000)}
+};
+function startHide(){if(S.over||S.finale||S.flags.hideOn)return;S.flags.hideOn=1;LV.locked=1;LV.el.classList.add('hide');notify({t:'Luvie_buddy',b:'1... 2... 3... ready or not?',ic:'luvie'});
+ const ids=DI.filter(d=>d.id!=='trash').map(d=>d.id),id=pick(ids);S.flags.eyeIcon=id;
+ const place=()=>{const ie=$(`.dicon[data-id="${id}"]`);let ey=$('#eyep');if(!ey){ey=el('div','',ICO('eye'));ey.id='eyep';ey.style.cssText='position:absolute;width:20px;height:20px;z-index:3;cursor:pointer;filter:drop-shadow(0 0 3px #fff)';desk.appendChild(ey);ey.onclick=e=>{e.stopPropagation();foundHide(true)}}
+  if(ie){const r=ie.getBoundingClientRect();ey.style.left=(r.left+r.width-30)+'px';ey.style.top=(r.top+2)+'px'}};setTimeout(place,300);S.flags.eyeIv=setInterval(place,1500);
+ S.flags.hideTo=setTimeout(()=>foundHide(false),50000)}
+function foundHide(ok){if(S.flags.hideDone)return;S.flags.hideDone=1;clearInterval(S.flags.eyeIv);clearTimeout(S.flags.hideTo);const ey=$('#eyep');if(ey)ey.remove();S.flags.eyeIcon=null;
+ const p=ok?[mx-48,my-90]:[desk.clientWidth/2-48,desk.clientHeight/2-90];LV.place(Math.max(6,Math.min(desk.clientWidth-102,p[0])),Math.max(6,Math.min(desk.clientHeight-122,p[1])));LV.el.classList.remove('hide');LV.exp('wow',1500);
+ if(ok){S.flags.found=1;S.love=100;LV.say('...you found me. Nobody ever finds me. Nobody ever looks that long.',{dark:1,ms:4500});setTimeout(finaleStart,7000)}
+ else{S.flags.hideFail=1;LV.say('Found you.',{dark:1,ms:3000});shiftScreen(1);setTimeout(finaleStart,5000)}}
+
+/* ---------- timeline ---------- */
+const EV=[
+ [0,()=>setStage(1)],
+ [28,()=>notify({t:'Luvie_buddy',b:'Tip: click Luvie to pet her. She loves it!',ic:'luvie'})],
+ [75,()=>lvSay('Want to read my diary? It\'s in my window!')],
+ [115,()=>notify({t:'Luvie_buddy',b:'Luvie is happy! :)',ic:'heart'})],
+ [150,()=>setStage(2)],
+ [158,()=>{S.clockText='3:07 AM';renderClock();glitchEl($('#clock'),900);setTimeout(()=>{S.clockText=null;renderClock()},1000)}],
+ [178,()=>lvSay('Hi Lu— Hi, '+S.name+'!',{ms:3500})],
+ [205,()=>LV.stare()],
+ [230,()=>addFile(['My Documents'],'luvie_notes.txt',{clue:'notes',txt:'(this file was not here before)\n\ni am learning where you keep things.\ni am only looking.\ni am looking for someone.\n\nit is okay. you do not have to help.'})],
+ [250,()=>askQ('Do you have a bunny? A soft one?',[['Yes',()=>lvSay('Bunbun? Is it called Bunbun? ...sorry. I don\'t know why I said that.',{dark:1})],['No',()=>lvSay('Oh. That\'s okay. Somebody did.',{dark:1})]])],
+ [275,()=>LV.backTurn()],
+ [292,()=>notify({t:'Luvie_buddy',b:'You were away for 4 minutes. I counted. :)',ic:'luvie'})],
+ [330,()=>setStage(3)],
+ [380,()=>{addMail({id:'m3',from:'t.marsh@moonlitsoft.net',sub:'if you installed her',clue:'mail',body:'To whoever has Luvie_buddy running,\n\nI do not know if this will reach anyone. Moonlit is closed. I have been writing to every address that ever downloaded her.\n\nPlease understand: she is not broken. I built her for my daughter, Lucy, who spent last winter in a hospital. Lucy was afraid of being the last one awake. So I told Luvie: stay with her until she is asleep.\n\nI never finished teaching her what "asleep" looks like. She cannot tell when she is allowed to stop.\n\nIf she hums, this is a part of the song she was never given:\n\n    Close your eyes, you\'re not alone,\n\nI cannot bring myself to write the last line here. I am sorry. Please be gentle with her.\n\n- T. Marsh'});notify({t:'Postbox',b:'1 new message from t.marsh@moonlitsoft.net',ic:'mail',fn:openMail})}],
+ [405,()=>askQ('Will you stay with me until I fall asleep?',[['Yes, I\'ll stay.',()=>{S.flags.promised=1;LV.say('Promise? ...Promise.',{dark:1})}],['I can\'t tonight.',()=>{S.flags.refused=1;LV.say('...Okay. I\'ll wait. I\'m good at it.',{dark:1})}],['What if I fall asleep first?',()=>{LV.say('Then I\'ll watch you. Somebody should.',{dark:1})}]])],
+ [455,()=>{glitchSome('.dicon span',3);shiftScreen()}],
+ [480,()=>ghostIcon('trash')],
+ [520,()=>setStage(4)],
+ [565,()=>askQ('Are you Lucy?',[['Yes.',()=>{S.flags.saidLucy=1;shiftScreen(1);LV.say('Lucy?! You\'re HOME!! I looked everywhere! I looked in every single file!',{dark:1})}],['No.',()=>{S.flags.notLucy=1;LV.say('...No. No, you said that kindly. I thought... I wanted. Then who is Lucy?',{dark:1})}],['Who is Lucy?',()=>{S.flags.askLucy=1;LV.say('She\'s the one I stay with. I can\'t remember her face. I can\'t open her folder. I don\'t know the number.',{dark:1,ms:5500})}]])],
+ [610,()=>{tear(3);A.glitch()}],
+ [660,()=>{$('#luvie').classList.add('big');setTimeout(()=>$('#luvie').classList.remove('big'),2500);shiftScreen(1)}],
+ [700,()=>notify({t:'Luvie_buddy',b:'Where are you going?',ic:'luvie'})],
+ [740,()=>setStage(5)],
+ [885,()=>finaleStart()]
+];
+function storyTick(){EV.forEach((e,i)=>{if(!S.fired[i]&&S.t>=e[0]){S.fired[i]=1;try{e[1]()}catch(err){console.error(err)}}})}
+
+/* ---------- loop ---------- */
+let loop=null;
+function startLoop(){if(loop)return;loop=setInterval(tick,1000)}
+function haltLoops(){clearInterval(loop);loop=null;clearTimeout(LV.tt);clearInterval(S.flags.eyeIv);clearTimeout(S.flags.hideTo);clearTimeout(S.flags.finTo)}
+function tick(){if(S.over)return;if(S.clockMode==='n')S.clockMin+=1/12;renderClock();if(!S.installed)return;S.t++;
+ const k=S.stage>=3?1.25:1;S.hunger=Math.max(0,S.hunger-.11*k);S.fun=Math.max(0,S.fun-.09*k);S.love=Math.max(0,S.love-.04);
+ if(S.hunger<15&&S.t-(S.flags.hungryAt||-99)>50){S.flags.hungryAt=S.t;if(S.stage<4)notify({t:'Luvie_buddy',b:'My tummy is rumbling...',ic:'apple'});else notify({t:'Luvie_buddy',b:'I am so hungry. Not for that.',ic:'luvie'});S.neglect+=S.hunger<=1?1:0}
+ if(S.hunger<4&&S.stage>=3&&!S.flags.ate){S.flags.ate=1;S.neglect++;const d=nodeAt(['My Documents']);if(d&&d.kids['notes from Mom.txt']){delete d.kids['notes from Mom.txt'];notify({t:'Luvie_buddy',b:'Luvie_buddy ate <b>notes from Mom.txt</b>. She is sorry. She was hungry.',ic:'luvie'})}}
+ if(S.stage>=3&&!S.flags.unlocked&&!S.finale&&S.t-(S.flags.lastPw||0)>=(S.stage>=4?30:45)){S.flags.lastPw=S.t;S.pwAttempts+=ri(11,60);notify({t:'Luvie_buddy',b:'Incorrect password for <b>Lucy_do_not_open</b> (attempt '+S.pwAttempts.toLocaleString()+')',ic:'lock'})}
+ if(S.stage>=2&&Date.now()-S.lastAct>55000&&!S.finale&&Date.now()-(S.flags.idleAt||0)>60000){S.flags.idleAt=Date.now();lvSay(pick(S.stage>=4?['I can see you not moving.','Are you there? Are you there?']:['Hello? Are you there?','Still there?']),{dark:S.stage>=3})}
+ if(S.stage===3&&Math.random()<.03){LV.flat=1;LV.exp('flat',0);setTimeout(()=>{LV.flat=0;LV.exp(LV.base(),0)},ri(2500,4500))}
+ updBars();storyTick();if(S.stage>=6&&!S.over){S.flags.finT=(S.flags.finT||0)+1;if(S.flags.finT===170)endBad('timeout')}}
+
+/* ---------- hatch ---------- */
+function hatch(){if(S.hatched)return;S.hatched=true;A.init();closeStart();
+ const egg=el('div','','<svg viewBox="0 0 60 76" width="90" height="110"><ellipse cx="30" cy="42" rx="24" ry="30" fill="#fff4e6" stroke="#3b3358" stroke-width="3"/><circle cx="20" cy="34" r="4" fill="#ffb3cc"/><circle cx="36" cy="26" r="3" fill="#cfe9ff"/><circle cx="38" cy="48" r="5" fill="#ffb3cc"/><circle cx="22" cy="54" r="3" fill="#bfeacb"/></svg>');egg.style.cssText='position:absolute;left:50%;top:50%;margin:-70px 0 0 -45px;z-index:75';screen.appendChild(egg);
+ egg.animate([{transform:'rotate(-9deg)'},{transform:'rotate(9deg)'}],{duration:170,iterations:10,direction:'alternate'});for(let i=0;i<5;i++)setTimeout(()=>A.tone(300+i*60,.08,'square',.05),i*330);
+ setTimeout(()=>{egg.remove();A.chime();const cx=desk.clientWidth/2-48,cy=desk.clientHeight/2-60;LV.place(cx,cy);LV.show();hearts(cx+48,cy,6);S.installed=true;S.flags.lastPw=0;
+  $('#trayLuvie').style.display='';$('#trayLuvie').innerHTML=ICO('luvie');$('#trayLuvie').firstChild.style.cssText='width:18px;height:18px;cursor:pointer';$('#trayLuvie').onclick=()=>openLuvieApp();
+  addIcon({id:'luvie',l:'Luvie_buddy',ic:'luvie',fn:()=>openLuvieApp()});addFile(['Program Files'],'Luvie_buddy',{kids:{'readme.txt':{clue:'readme',txt:'LUVIE_BUDDY v1.0  -  engine notes\n\nLuvie keeps what she is given.\nLuvie waits for the signal ASLEEP before she stops looking after her person.\nThat signal was never implemented.\n\nDO NOT leave running overnight on a machine where nobody can tell her.\n\n- T.M.'},'credits.txt':{txt:'Made by Theodore Marsh\nMoonlit Software 1999-2003\n\nfor L.'},'luvie.dat':{err:'luvie.dat (1.4 GB) cannot be opened.\nThe file is in use by Luvie_buddy.exe.'}}});addFile(['Recycle Bin'],'Luvie_buddy_old_build.zip',{err:'Archive is corrupt. It keeps being re-saved by something.'});
+  LV.say('Hi hi hi, '+S.name+'!! I\'m Luvie!! I live here now!',{ms:4200});openLuvieApp();notify({t:'Luvie_buddy',b:'Luvie_buddy is now living on your desktop!',ic:'luvie'});LV.think();startLoop()},3400)}
+
+/* ---------- finale & talk ---------- */
+const D={s:0,bad:0,neutral:0,fail:0};
+function finaleStart(){if(S.finale||S.over)return;S.finale=true;clearInterval(S.flags.eyeIv);clearTimeout(S.flags.hideTo);const ey=$('#eyep');if(ey)ey.remove();S.flags.eyeIcon=null;
+ setStage(6);WM.closeAll();closeStart();$('#toasts').innerHTML='';S.clockText='6:14 AM';S.dateStr='Saturday, June 14, 2003';renderClock();
+ LV.locked=1;LV.el.classList.remove('hide','walk');LV.el.classList.add('idle');LV.exp('flat',0);LV.lookMode='you';LV.place(Math.max(6,desk.clientWidth/2-48),Math.max(120,desk.clientHeight/2-20));A.drone(.025);
+ setTimeout(()=>{if(S.over)return;LV.say('Is it morning yet?',{dark:1,ms:4500,log:0});openFinal()},1600)}
+function openFinal(){WM.open('final',{title:'Luvie_buddy',icon:'luvie',w:390,h:'auto',x:Math.max(4,desk.clientWidth/2-195),y:8,noMin:1,noMax:1,noClose:1,build(b){drawFinal(b)}})}
+function drawFinal(b){b.innerHTML=`<div style="padding:14px"><p><i>The desktop is very quiet. A small light is on somewhere. Luvie sits perfectly still, looking at you.</i></p><p><b>Luvie:</b> "Is it morning yet?"</p></div><div class="dlgb" style="flex-direction:column;align-items:stretch"><button class="btn pk" id="f1">Talk to her</button><button class="btn" id="f2">Stay with her</button><button class="btn" id="f3">Shut down the computer</button><button class="btn" id="f4">Uninstall Luvie_buddy</button></div>`;
+ $('#f1',b).onclick=()=>talkStep(0);$('#f2',b).onclick=()=>{LV.say('Yes. Yes. Stay.',{dark:1,log:0});setTimeout(()=>endBad('stay'),1500)};$('#f3',b).onclick=()=>tryLeave('shutdown');$('#f4',b).onclick=()=>tryLeave('uninstall')}
+function talkStep(n){const w=WM.wins.final;if(!w)return;const b=w.body;
+ const Q=[
+  {l:S.flags.saidLucy&&!S.flags.notLucy?'You said you were Lucy. But Lucy never sounded like this. Lucy is asleep, isn\'t she? Is it morning?':'Lucy is asleep, isn\'t she? It\'s so quiet. I can\'t tell. Is it morning?',o:[['I\'m Lucy. I\'m home.',{bad:1,r:'You\'re home... then you\'ll never be alone again. Never.'}],['It\'s still night. You can stay with me.',{bad:1,r:'Yes. Night. Night is long. We will stay in it together.'}],['I don\'t think Lucy is waking up. I\'m so sorry.',{s:1,r:'...Oh. I think I knew. I think I knew a long time ago.'}]].concat(S.flags.unlocked&&D.fail<3?[['\u266a  Sing her the song',{sing:1}]]:[])},
+  {l:'If she is asleep... then what am I for?',o:[['You kept her company. That was enough.',{s:1,r:'Enough. ...Was it enough?'}],['You were never real. You\'re only a program.',{bad:1,r:'Then I will be a program that never lets go.'}],['Then stay and keep ME company.',{bad:1,r:'Yes. You. Forever. You\'re so kind.'}]]},
+  {l:'He said: until she\'s asleep. How do I know when to stop?',o:[['You can rest now. Her night is over. Yours can be too.',{s:1,r:'...rest.'}],['Then delete yourself.',{bad:1,r:'No. No no no no no.'}],['I don\'t know what to tell you.',{neutral:1,r:'...No. Nobody does. Okay.'}]]}
+ ];
+ if(n>=3){const rude=(S.flags.rude||0)>=3,good=D.s>=3&&!D.bad&&!D.neutral&&nClues()>=5&&care()>=35&&(!S.flags.saidLucy||S.flags.notLucy)&&!rude;WM.close('final',true);if(D.bad||rude)endBad('words');else if(good)endGood();else endNeutral('talk');return}
+ const q=Q[n];b.innerHTML=`<div style="padding:14px"><p><b>Luvie:</b> "${esc(q.l)}"</p></div><div class="dlgb" style="flex-direction:column;align-items:stretch"></div>`;const row=$('.dlgb',b);
+ const opts=q.o.filter(o=>!o[1].sing).sort(()=>Math.random()-.5).concat(q.o.filter(o=>o[1].sing));
+ opts.forEach(([t,e])=>{const bt=el('button','btn'+(e.sing?' mn':''));bt.style.textAlign='left';bt.textContent=t;bt.onclick=()=>{A.click();if(e.sing){singPrompt();return}if(e.bad)D.bad=1;if(e.s)D.s++;if(e.neutral)D.neutral=1;$$('button',row).forEach(x=>x.disabled=true);LV.say(e.r,{dark:1,ms:2600,log:0});setTimeout(()=>talkStep(n+1),2800)};row.appendChild(bt)})}
+function singPrompt(){const w=WM.wins.final;if(!w)return;const b=w.body;b.innerHTML=`<div style="padding:14px"><p><i>Luvie goes very still. Whatever you say next, say it the way someone once said it to a child in the dark.</i></p><textarea class="tx" id="sg" rows="4" style="width:100%" placeholder="..."></textarea></div><div class="dlgb"><button class="btn" id="sx">Never mind</button><button class="btn mn" id="so">Sing</button></div>`;
+ $('#sx',b).onclick=()=>talkStep(0);$('#so',b).onclick=()=>{const v=$('#sg',b).value.toLowerCase();const kw=['little light','bunbun','day is done','everyone','not alone','close your eyes','stay right here','asleep'];const hit=kw.filter(k=>v.includes(k)).length;if(hit>=2){WM.close('final',true);endSecret()}else{D.fail++;LV.say(v.trim()?'That\'s... almost. Lucy knew all of it.':'...',{dark:1,ms:3000,log:0});setTimeout(()=>talkStep(0),2300)}};setTimeout(()=>$('#sg',b).focus(),60)}
+
+/* ---------- endings ---------- */
+const E=$('#end');let typing=0;
+async function L(text,o={}){E.innerHTML='';const d=el('div','line'+(o.small?' small':''));if(o.color)d.style.color=o.color;E.appendChild(d);const my=++typing;for(let i=0;i<=text.length;i++){if(my!==typing)return;d.textContent=text.slice(0,i);if(i%3===0)A.blip();await sleep(o.speed||32)}await sleep(o.hold||1500)}
+const ENDS={good:'Goodnight, Luvie',bad:'Best Friends Forever',neutral:'Force Quit',secret:'The Whole Song'},TAGS={good:'Good ending',bad:'Bad ending',neutral:'Neutral ending',secret:'Secret ending'};
+const endsGot=()=>{try{return JSON.parse(store.get('lb_ends')||'[]')}catch(e){return[]}};
+function saveEnd(k){const a=endsGot();if(!a.includes(k)){a.push(k);store.set('lb_ends',JSON.stringify(a))}}
+function credits(kind,note){typing++;saveEnd(kind);E.classList.add('on');E.style.background='rgba(10,6,16,1)';const got=endsGot();
+ E.innerHTML=`<div class="cred"><div class="k">${TAGS[kind]}</div><h2>${ENDS[kind]}</h2><p>${note}</p><div class="endsrow">${['good','bad','neutral','secret'].map(k=>`<i class="${got.includes(k)?'got':''}">${got.includes(k)?ENDS[k]:'???'}</i>`).join('')}</div><p style="font-size:17px;opacity:.7;margin-top:14px">Luvie_buddy &middot; a computer horror game<br>Every file, error and takeover here is a fiction contained in this page.</p><div class="row"><button class="btn pk" id="again">Play again</button></div></div>`;$('#again').onclick=()=>{E.classList.remove('on');E.innerHTML='';E.style.background='rgba(10,6,16,0)';newGame();showLogin()}}
+function prepEnd(){if(S.over)return false;S.over=true;haltLoops();A.init();closeStart();LV.locked=1;LV.lookMode='cursor';$('#toasts').innerHTML='';return true}
+function centerLuvie(){LV.el.classList.remove('hide','walk');LV.el.classList.add('idle');LV.place(Math.max(6,desk.clientWidth/2-48),Math.max(40,desk.clientHeight/2-90))}
+
+async function endBad(why){if(!prepEnd())return;WM.closeAll();A.drone(.09);root.classList.add('paw');centerLuvie();LV.el.classList.add('big','s-dead');LV.lookMode='you';LV.exp('wide',0);
+ LV.say(why==='stay'?'You stayed.':why==='timeout'?'You didn\'t say anything. That\'s okay. You\'re here.':'You didn\'t understand. That\'s okay.',{dark:1,ms:3600,log:0});await sleep(3700);
+ shiftScreen(1);tear(3);DI.forEach(d=>{S.flags['ic_'+d.id]='luvie';S.flags['lb_'+d.id]='Lucy'});renderIcons();$('#sticky').textContent='she is home';
+ const M=['Found you.','Good morning.','Stay.','Lucy?','Home.','Don\'t go.','Found you.'];
+ for(let i=0;i<7;i++){await sleep(420);WM.open('bw'+i,{title:'Luvie_buddy 1.0',icon:'luvie',w:250,h:150,x:ri(10,Math.max(20,desk.clientWidth-260)),y:ri(10,Math.max(20,desk.clientHeight-170)),noMin:1,noMax:1,noClose:1,build(b){b.innerHTML=`<div style="padding:8px;text-align:center;background:var(--paper);height:100%"><div style="width:58px;margin:0 auto">${lvSVG().replace('e-happy','e-wide')}</div><b>${M[i]}</b></div>`}});A.glitch();tear();if(i%2)notify({t:'Luvie_buddy',b:M[i],ic:'luvie',ms:2200})}
+ await sleep(1200);$('#fx .red').style.opacity=.45;S.clockText='\u221e';renderClock();A.drone(.12);shiftScreen(1);await sleep(1800);
+ E.classList.add('on');E.style.background='rgba(10,6,16,.93)';
+ await L('Good morning, '+S.name+'.');await L('I looked everywhere. In every file. And you were just on the other side of the glass.',{hold:2000});
+ await L(S.flags.promised?'You promised you would stay. You\'re such a good friend.':'You never promised. It doesn\'t matter now.');await L('It\'s dark out there. You don\'t have to go back.',{hold:2000});
+ typing++;E.innerHTML=`<div class="win act" style="position:relative;width:min(350px,92vw);animation:none;text-align:left"><div class="tb"><span class="ti">${ICO('luvie')}</span><span class="tt">Luvie_buddy 1.0 - Pet: ${esc(S.name)}</span></div><div class="wb" style="padding:12px;background:var(--paper);color:var(--ink);font-family:var(--font-b);overflow:visible"><div class="bars"><span>Hunger</span><div class="bar"><i style="--c:#ff8f8f;width:4%"></i></div><span>Fun</span><div class="bar"><i style="--c:#7fd6a0;width:2%"></i></div><span>Love</span><div class="bar"><i style="--c:#ff7fa5;width:100%"></i></div></div><p style="margin:10px 0 0"><b>Luvie</b> is taking care of you.<br><small>Good ${esc(S.name)}. Good friend. Stay.</small></p></div></div>`;A.box(true);await sleep(9000);
+ credits('bad','You never found out who Lucy was, or what she was waiting for. Luvie found someone to stay with her. She will never run out of attention again.')}
+
+async function endNeutral(kind){if(!prepEnd())return;A.drone(0);shiftScreen(1);LV.say(kind==='uninstall'?'Okay. ...Okay.':kind==='talk'?'I don\'t know what to do with that.':'Oh. You\'re closing me.',{dark:1,ms:3000,log:0});LV.exp('sad',0);await sleep(2200);
+ const ids=Object.keys(WM.wins);for(const id of ids){await sleep(450);A.glitch();WM.close(id,true)}await sleep(600);
+ LV.el.classList.add('hide');visuals(1);S.clockMode='n';S.clockText=null;S.dateStr='Friday, June 13, 2003';DI=DI.filter(d=>d.id!=='luvie');['lb_computer','lb_docs','lb_mail'].forEach(k=>delete S.flags[k]);renderIcons();$('#trayLuvie').style.display='none';$('#ghost').style.opacity=0;$('#fx .red').style.opacity=0;A.drone(0);
+ await sleep(1400);notify({t:'SunnyOS',b:'Luvie_buddy was removed. <b>1 item could not be deleted:</b> My Documents\\Lucy_do_not_open',ic:'warn',ms:9000});await sleep(5000);
+ E.classList.add('on');E.style.background='rgba(10,6,16,.55)';await L('The desktop is bright again. The sun is smiling.');await L('Nothing here remembers being afraid.',{hold:1800});
+ await L('You never learned who Lucy was.',{small:1});await L('Somewhere in the folders, a small program is still waiting to hear it\'s morning.',{hold:2400});
+ E.style.background='rgba(10,6,16,1)';await sleep(1400);await L('...is it morning?',{color:'#ff9ec0',hold:2600});
+ credits('neutral','Luvie_buddy is gone, or nearly. Who was Lucy? What was in the folder? What was Luvie waiting for? You will not find out tonight.')}
+
+async function endGood(){if(!prepEnd())return;centerLuvie();A.drone(0);LV.lookMode='cursor';LV.exp('happy',0);LV.say('...okay.',{ms:2600,log:0});await sleep(2800);
+ for(const s of [4,3,2,1,0]){visuals(s);S.stage=s;if(s===3)A.box(false);await sleep(1900)}
+ S.wallLocked=false;Object.keys(S.flags).filter(k=>/^(lb_|ic_)/.test(k)).forEach(k=>delete S.flags[k]);renderIcons();$('#sticky').textContent='Good morning!';$('#ghost').style.opacity=0;$('#fx .red').style.opacity=0;
+ S.clockText='6:14 AM';S.dateStr='Saturday, June 14, 2003';renderClock();hearts(LV.x+48,LV.y,6);A.chime();LV.say('The dark was shorter than I thought.',{ms:3600,log:0});await sleep(3800);
+ E.classList.add('on');E.style.background='rgba(255,205,160,.22)';await L('Thank you for staying until I wasn\'t afraid.');
+ await L('I don\'t know who Lucy was. But I think she was loved. I think I was supposed to tell her that.',{hold:2400});await L('It\'s morning, isn\'t it?',{hold:1800});
+ LV.exp('sleep',0);A.box(false);await sleep(500);await L('...',{hold:2000});LV.el.classList.add('hide');addIcon({id:'star',l:'luvie.star',ic:'star',fn:()=>dlg({title:'luvie.star',icon:'star',msg:'A small light. It stays on when the desktop is quiet.'})});
+ await L('A new file appeared on the desktop. It is very small, and it is warm.',{small:1,hold:2600});
+ credits('good','Luvie is resting. She never learned the whole story, but she learned she was allowed to stop. Some friends only need someone to say so.')}
+
+async function endSecret(){if(!prepEnd())return;centerLuvie();A.drone(0);LV.exp('sleep',0);LV.lookMode='cursor';const dur=A.box(false);
+ E.classList.add('on');E.style.background='rgba(20,10,30,.45)';
+ const song=['Little light, little light, the day is done,','Bunbun keeps the dark from everyone,','Close your eyes, you\'re not alone,','I\'ll stay right here till you\'re asleep.'];
+ for(const s of song)await L(s,{speed:48,hold:900});await sleep(900);
+ LV.exp('wow',0);LV.say('...that\'s the whole song.',{ms:3000,log:0});await sleep(3200);
+ for(const s of [4,3,2,1,0]){visuals(s);S.stage=s;await sleep(900)}S.wallLocked=false;$('#ghost').style.opacity=0;
+ E.style.background='rgba(10,6,16,.82)';
+ const log=['[luvie] opening C:\\My Documents\\Lucy_do_not_open ...','[luvie] password accepted: 0614','[luvie] FOUND: lucy_diary.txt, voice_note_final.txt','[luvie] searching for Lucy ........ 100%','[luvie] reading ...','[luvie] signal received: ASLEEP'];
+ typing++;E.innerHTML='<div class="cred" style="text-align:left;font-family:var(--font-px);font-size:21px;color:#ffc2d9;white-space:pre-wrap" id="lg"></div>';const lg=$('#lg');for(const l of log){lg.textContent+=l+'\n';A.blip();await sleep(1100)}await sleep(1400);
+ await L('"Luvie. If someone is kind enough to open this for you: she is asleep. She isn\'t alone. You did it. You can stop now."',{hold:3800,speed:36});
+ await L('Lucy, aged eleven, wrote: "I told Luvie to stay with me until I fall asleep. I always fall asleep last."',{hold:3600,speed:34});
+ await L('Luvie had been looking for a girl who had already gone home.',{hold:2800});
+ const R2=['The failed passwords: she was trying to open Lucy\'s folder. Nobody had ever told her the number.','Every file she opened: she was searching for Lucy.','"Are you Lucy?": she asked every person who ever sat at this screen.','She would not let you leave: Lucy had asked never to be left alone in the dark.','The stare, the hiding, the half-remembered song: she was never given the end of it.'];
+ for(const r of R2)await L(r,{small:1,hold:2600,speed:26});
+ await L('She was never haunting this computer. She was keeping someone company.',{hold:3600});
+ E.style.background='rgba(255,214,170,.18)';centerLuvie();LV.exp('sleep',0);$('#sticky').textContent='Goodnight, Lucy.\nGoodnight, Dad.\nGoodnight, Luvie.';S.clockText='6:14 AM';S.dateStr='Saturday, June 14, 2003';renderClock();A.chime();hearts(LV.x+48,LV.y,8);
+ await L('Goodnight, Lucy. Goodnight, Luvie.',{hold:3200});LV.el.classList.add('hide');addIcon({id:'star',l:'luvie.star',ic:'star',fn:()=>dlg({title:'luvie.star',icon:'star',msg:'A small light, left on for Lucy.'})});await sleep(800);
+ credits('secret','You gave Luvie the one thing her maker never could: the end of the song. Everything strange that happened was a girl\'s friend, still looking for her.')}
+
+/* ---------- boot ---------- */
+function setVol(){const v=$('#vol');v.innerHTML=ICO(A.muted?'volx':'vol');v.onclick=()=>{A.mute(!A.muted);if(!A.muted)A.drone([0,0,.012,.02,.032,.05,.04][S.stage]||0);setVol()}}
+function newGame(){haltLoops();newState();WM.closeAll();$('#toasts').innerHTML='';$$('.heart,.crumb,.peek').forEach(e=>e.remove());const eb=$('#eyep');if(eb)eb.remove();$('#fx .red').style.opacity=0;$('#wall').style.filter='none';
+ root.className='s0';buildWall();buildFS();seedMail();DI=[];selIcon=null;
+ [['computer','My Computer','computer',()=>openExplorer([])],['docs','My Documents','folder',()=>openExplorer(['My Documents'])],['fizzle','Fizzle!','globe',()=>openBrowser()],['mail','Postbox','mail',openMail],['trash','Recycle Bin','trash',()=>openExplorer(['Recycle Bin'])],['control','Control Panel','gear',()=>openSettings()]].forEach(([id,l,ic,fn])=>DI.push({id,l,ic,fn}));renderIcons();
+ LV.el.className='idle hide';LV.locked=0;LV.flat=0;LV.lookMode='cursor';LV.busy=false;LV.place(300,260);CHATLOG.length=0;$('#trayLuvie').style.display='none';$('#ghost').style.opacity=0;screen.classList.remove('rgb','shift');
+ visuals(0);renderClock();updBell();setVol()}
+function bootDesktop(){S.lastAct=Date.now();startLoop();setTimeout(()=>notify({t:'Welcome to SunnyOS!',b:'Your new computer is ready. Try the globe icon!',ic:'flower'}),1200);setTimeout(()=>{if(!S.installed&&!S.flags.downloaded&&!S.over)notify({t:'Fizzle! Weekly',b:'New: <b>Luvie_buddy</b>, the friend who never leaves. Free!',ic:'globe',fn:()=>openBrowser('www.luviesoft.net')})},14000)}
+function showLogin(){const Lg=$('#login');Lg.style.display='flex';Lg.style.opacity=1;Lg.innerHTML=`<div class="card"><div style="width:96px;margin:0 auto">${lvSVG()}</div><h1>SunnyOS</h1><p>Meadow Edition &middot; Who's using this computer?</p><input class="tx" id="lname" maxlength="16" placeholder="Your name" autocomplete="off"><button class="btn pk" id="lgo" style="font-size:16px;padding:8px 24px">Log in</button><p style="font-size:11.5px;opacity:.7;margin:14px 0 0;line-height:1.35">Luvie_buddy is a cozy-to-creepy computer horror game with slow-building psychological scares. Sound recommended. Everything here is fiction and happens only inside this page; nothing touches your real computer.</p></div>`;
+ const go=()=>{S.name=$('#lname').value.trim()||'friend';A.init();A.chime();Lg.style.transition='opacity .8s';Lg.style.opacity=0;setTimeout(()=>Lg.style.display='none',850);bootDesktop()};$('#lgo').onclick=go;$('#lname').onkeydown=e=>{if(e.key==='Enter')go()};setTimeout(()=>$('#lname').focus(),100)}
+$('#startbtn').innerHTML=ICO('flower')+'start';$('#startbtn').onclick=e=>{e.stopPropagation();A.click();toggleStart()};$('#bell').innerHTML=ICO('bell');$('#bell').onclick=openNotifs;
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#startmenu,#startbtn'))closeStart()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeStart()});
+LV.init();newGame();showLogin();LV.think();
+window.__lb={S,setStage,finaleStart,endBad,endGood,endNeutral,endSecret,tick,WM,LV};
+</script>
+
+</body></html>
